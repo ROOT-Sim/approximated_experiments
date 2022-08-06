@@ -44,7 +44,7 @@ def rootsir_run(param_str, model_folder):
     # Check if this conf has already run
     if os.path.exists(f"data/{model_folder}_{param_str}.bin"):
         print(f"rootsim_{param_str} already run")
-        return false
+        return
 
     os.system(f"mpicc -O3 ./{model_folder}/*.c ./rootsim_core_build/src/librscore.a -I. -Irootsim_core/src -lm -pthread -o model")
     os.system("rm -f root_sir_stats.bin")
@@ -57,7 +57,7 @@ def rootsir_run(param_str, model_folder):
         f.write(f"{model_folder}\t{spaced_str}\t{t}\n")
     os.system(f"mv root_sir_stats_phases.txt data/{model_folder}_{param_str}_phases.txt")
     os.system(f"mv root_sir_stats.bin data/{model_folder}_{param_str}.bin")
-    return true
+    return
 
 
 # Collect data for all configurations and model versions

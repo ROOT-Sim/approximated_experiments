@@ -1,0 +1,3 @@
+[submodule "rootsim_core"]
+	path = rootsim_core
+	url = https://github.com/ROOT-Sim/core

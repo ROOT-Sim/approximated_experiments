@@ -71,6 +71,7 @@ void ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, union event_t 
 			SetState(region);
 
 			region->me = me;
+			ApproximatedModeSwitch(EXEC_MODE);
 
 			srand48_r(Random() * INT_MAX, &(region->random_initialization_buf));
 

@@ -8,6 +8,7 @@ values_mode = ["PRECISE", "APPROXIMATED", "AUTONOMIC"]
 values_phold_lps = [1024]
 values_phold_percentage = [0.25, 0.5, 0.75, 1.0]
 
+
 def prepare_rootsim():
     if os.path.exists("rootsim_core_build"):
         return
@@ -38,7 +39,7 @@ def write_config(num_lps, num_threads, mode, percentage=1.0):
         f.write(f"#define RESTORE_PERCENTAGE {percentage}\n")
 
 
-def rootsir_run(param_str, model_folder):
+def rootsir_run(param_str, model_folder, collect_tbc=False):
     print(f"Running rootsim_{param_str}")
 
     # Check if this conf has already run
@@ -55,6 +56,11 @@ def rootsir_run(param_str, model_folder):
     with open("data/times.txt", "a") as f:
         spaced_str = param_str.replace('_', '\t')
         f.write(f"{model_folder}\t{spaced_str}\t{t}\n")
+
+    if collect_tbc:
+        os.system(f"mv tbc_stats.txt data/{model_folder}_{param_str}_tbc_stats.txt")
+    else:
+        os.system("rm -f tbc_stats.txt")
     os.system(f"mv root_sir_stats_phases.txt data/{model_folder}_{param_str}_phases.txt")
     os.system(f"mv root_sir_stats.bin data/{model_folder}_{param_str}.bin")
     return
@@ -74,6 +80,7 @@ def collect_phold_data():
                         write_config(num_lps, num_threads, mode, percentage)
                         rootsir_run(param_str, "phold")
 
+
 def collect_tbc_data():
     os.system("mkdir -p data")
     for iteration in values_interations:
@@ -82,9 +89,10 @@ def collect_tbc_data():
                 num_lps = 16384
                 param_str = f"{num_lps}_{num_threads}_{mode}_{iteration}"
                 write_config(num_lps, num_threads, mode)
-                rootsir_run(param_str, "tbc")
+                rootsir_run(param_str, "tbc", collect_tbc=True)
+
 
 prepare_rootsim()
-#collect_phold_data()
+collect_phold_data()
 collect_tbc_data()
 

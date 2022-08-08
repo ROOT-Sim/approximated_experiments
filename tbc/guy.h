@@ -38,7 +38,6 @@ enum agent_state {
 // at each time step with only a minor increase in operations (some integer additions)
 // TODO the guy struct can be even more space efficient with some tricks: implement them
 struct guy_t {
-	unsigned long long id;
 	rootsim_bitmap flags[bitmap_required_size(flags_count)];
 	int birth_day; /// this is an int since a guy could be born in the past (before the simulation start)
 	int infection_day;
@@ -52,8 +51,6 @@ struct guy_t {
 typedef struct _region_t {
 	unsigned agents_count[END_STATES];
 	simtime_t now;
-	unsigned int me;
-	unsigned long long counter;
 	struct drand48_data random_initialization_buf;
 	struct guy_t agents[END_STATES];
 	unsigned stats_agents_count[GATHER_STATS_COUNT][END_STATES];

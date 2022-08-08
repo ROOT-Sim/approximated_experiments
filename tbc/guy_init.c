@@ -149,16 +149,8 @@ void init_treated(struct guy_t *guy, region_t *region)
 
 struct guy_t *init_guy(region_t *region, enum agent_state state)
 {
-	struct guy_t *guy;
-
-	if(!(guy = rs_malloc(sizeof(*guy))))
-		abort();
+	struct guy_t *guy = rs_malloc(sizeof(*guy));
 	memset(guy, 0, sizeof(*guy));
-
-	unsigned long long k1 = (unsigned long long)region->me;
-	unsigned long long k2 = region->counter++;
-
-	guy->id = (unsigned long long)(((k1 + k2) * (k1 + k2 + 1) / 2) + k2);
 
 	guy->state = state;
 	// add the guy to the corresponding list

@@ -56,7 +56,7 @@ struct guy_t *guy_add_head(struct guy_t *head, struct guy_t *node)
 
 void guy_mark_by_state(struct guy_t *guy)
 {
-	ApproximatedMemoryMark(guy, guy->state == HEALTHY);
+	ApproximatedMemoryMark(guy, guy->state == PRECISE_STATE);
 }
 
 void guy_change_state(region_t *region, struct guy_t *guy, enum agent_state new_state)
@@ -107,7 +107,7 @@ static void infect(unsigned me, struct guy_t *guy, simtime_t now)
 	lp_id_t j = 0;
 	while(i) {
 		if((target = GetReceiver(me, topology, j++)) != INVALID_DIRECTION) {
-			ScheduleNewEvent(target, now + 0.0001, INFECTION, &inf_data, sizeof(infection_t));
+			ScheduleNewEvent(target, now, INFECTION, &inf_data, sizeof(infection_t));
 			--i;
 		}
 	}
@@ -360,7 +360,7 @@ void guy_move(unsigned me, region_t *region)
 			continue;
 		}
 
-		struct guy_t *bundle = rs_malloc(agents_count[neighbours] * sizeof(struct guy_t));
+		struct guy_t *bundle = malloc(agents_count[neighbours] * sizeof(struct guy_t));
 		struct guy_t *curr_agent = agents[neighbours].next;
 		unsigned k = 0;
 		while(curr_agent) {
@@ -371,9 +371,9 @@ void guy_move(unsigned me, region_t *region)
 			k++;
 		}
 
-		ScheduleNewEvent(dest, region->now + Random() / 1000, GUY_RECV, bundle,
+		ScheduleNewEvent(dest, region->now, GUY_RECV, bundle,
 		    agents_count[neighbours] * sizeof(struct guy_t));
-		rs_free(bundle);
+		free(bundle);
 	}
 
 	memset(region->agents_count, 0, sizeof(region->agents_count));

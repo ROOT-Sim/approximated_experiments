@@ -11,6 +11,9 @@
 #include <ROOT-Sim.h>
 #include "bitmap.h"
 
+#define GATHER_STATS_COUNT 1000
+#define PRECISE_STATE TREATED
+
 // the flags used in the guy struct
 enum _flags_t{
 	f_foreigner,
@@ -23,11 +26,11 @@ enum _flags_t{
 };
 
 enum agent_state {
-	TREATED,
-	TREATMENT,
+	HEALTHY,
 	INFECTED,
 	SICK,
-	HEALTHY,
+	TREATMENT,
+	TREATED,
 	END_STATES, // A dummy state to track the size of the enum
 };
 
@@ -53,6 +56,7 @@ typedef struct _region_t {
 	unsigned long long counter;
 	struct drand48_data random_initialization_buf;
 	struct guy_t agents[END_STATES];
+	unsigned stats_agents_count[GATHER_STATS_COUNT][END_STATES];
 } region_t;
 
 struct guy_msg_t {
@@ -65,8 +69,6 @@ typedef struct _infection_t infection_t;
 void guy_on_visit(struct guy_t *, unsigned me, region_t *region);
 bool guy_on_leave(struct guy_t *, region_t *region);
 void guy_on_infection(const infection_t *inf, region_t *region);
-
-void guy_stats(unsigned guy_counts[4]);
 
 void define_diagnose(struct guy_t *guy, simtime_t now);
 void set_risk_factors(struct guy_t *guy, region_t *region);

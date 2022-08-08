@@ -6,6 +6,7 @@
 
 #include <math.h>
 #include <stdio.h>
+#include <time.h>
 
 double infection_p = P_INFECT;
 
@@ -32,6 +33,7 @@ union event_t {
 	const struct guy_t *agents;
 	const infection_t *i_m;
 	const init_t *in_m;
+	const unsigned *phase;
 };
 
 extern void ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, union event_t event_content, unsigned int event_size, region_t *state);
@@ -81,11 +83,13 @@ void ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, union event_t 
 				guy_init_list(&(region->agents[j]));
 			}
 
-			if(!me) {
+			if (!me) {
 				// this function let LP0 coordinate the init phase
 				guy_init(&region->random_initialization_buf);
 			}
-
+			unsigned phase = 0;
+			ScheduleNewEvent(me, (conf.termination_time - 1) / GATHER_STATS_COUNT + now, GATHER_STATS, &phase,
+							 sizeof(phase));
 			break;
 
 		case INFECTION:
@@ -105,7 +109,30 @@ void ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, union event_t 
 			guy_move(me, state);
 			break;
 
-		case LP_FINI:
+		case GATHER_STATS:;
+			simtime_t step = (conf.termination_time - 1) / GATHER_STATS_COUNT;
+
+			unsigned this_phase = *payload.phase;
+			memcpy(state->stats_agents_count[this_phase], state->agents_count, sizeof(state->agents_count));
+			++this_phase;
+			ScheduleNewEvent(me, step + now, GATHER_STATS, &this_phase, sizeof(this_phase));
+			break;
+
+		case LP_FINI:;
+			static unsigned stats[GATHER_STATS_COUNT][END_STATES] = {0};
+			for (unsigned i = 0; i < GATHER_STATS_COUNT; ++i)
+				for (int k = 0; k < END_STATES; ++k)
+					stats[i][k] += state->stats_agents_count[i][k];
+
+			if (me != NUM_LPS - 1)
+				break;
+
+			FILE *f = fopen("tbc_stats.txt", "w");
+			for (unsigned i = 0; i < GATHER_STATS_COUNT; ++i) {
+				for (int k = 0; k < END_STATES; ++k)
+					fprintf(f, "%u ", stats[i][k]);
+				fprintf(f, "\n");
+			}
 			break;
 
 		default:
@@ -130,13 +157,13 @@ void RestoreApproximated(lp_id_t me, void *ptr)
 	memcpy(init_data.agents_count, region->agents_count, sizeof(region->agents_count));
 	int j = END_STATES;
 	while (j--) {
-		if (j == HEALTHY)
+		if (j == PRECISE_STATE)
 			continue;
 		region->agents_count[j] = 0;
 		region->agents[j].next = NULL;
 		region->agents[j].prev = NULL;
 	}
-	init_data.agents_count[HEALTHY] = 0;
+	init_data.agents_count[PRECISE_STATE] = 0;
 	guy_on_init(&init_data, region);
 }
 
@@ -145,6 +172,7 @@ struct topology *topology;
 int main(void)
 {
 	topology = InitializeTopology(TOPOLOGY_SQUARE, (unsigned)sqrt(NUM_LPS), (unsigned)sqrt(NUM_LPS));
+	conf.prng_seed = time(NULL);
 	RootsimInit(&conf);
 	return RootsimRun();
 }

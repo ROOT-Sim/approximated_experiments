@@ -13,9 +13,10 @@
 
 enum {
 	INFECTION,
+	GUY_RECV,
 	GUY_INIT,
 	GUY_MOVE,
-	GUY_RECV,
+	GATHER_STATS
 };
 
 extern struct topology *topology;

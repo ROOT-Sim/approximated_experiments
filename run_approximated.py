@@ -12,14 +12,14 @@ values_phold_percentage = [0.25, 0.5, 0.75, 1.0]
 def prepare_rootsim():
     if os.path.exists("rootsim_core_build"):
         return
-    
+
     os.system("rm -r rootsim_core_build_tmp")
     res = os.system("cmake -S rootsim_core -B rootsim_core_build_tmp -DCMAKE_BUILD_TYPE=RELEASE")
 
     if os.waitstatus_to_exitcode(res) != 0:
         print("cmake configure failed!")
         exit(-1)
-    
+
     res = os.system("cmake --build rootsim_core_build_tmp")
 
     if os.waitstatus_to_exitcode(res) != 0:

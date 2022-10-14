@@ -1,18 +1,18 @@
 #include "application.h"
+#include "config.h"
 
 #include <string.h>
 
-buffer* get_buffer(buffer *head, unsigned i) {
-	while(i--) {
+buffer *get_buffer(buffer *head, unsigned i) {
+	while (i--) {
 		head = head->next;
 	}
 	return head;
 }
 
-unsigned read_buffer(buffer *head, unsigned i)
-{
+unsigned read_buffer(buffer *head, unsigned i) {
 	head = get_buffer(head, i);
-	if(head == NULL)
+	if (head == NULL)
 		return 0;
 
 	unsigned ret = 0;
@@ -23,19 +23,19 @@ unsigned read_buffer(buffer *head, unsigned i)
 	return ret;
 }
 
-buffer* allocate_buffer(buffer *head, const unsigned *data, unsigned count)
-{
-        count = count == 0 ? 1 : count;
+buffer *allocate_buffer(buffer *head, const unsigned *data, unsigned count) {
+	count = count == 0 ? 1 : count;
 	buffer *new = rs_malloc(sizeof(buffer));
 	new->next = head;
 	new->count = count;
 	new->data = rs_malloc(count * sizeof(unsigned));
-	ApproximatedMemoryMark(new->data, false);
+	if(Random() > PRECISE_PERCENTAGE)
+		ApproximatedMemoryMark(new->data, false);
 
 	if (data != NULL) {
 		memcpy(new->data, data, count * sizeof(unsigned));
 	} else {
-		for(unsigned i = 0; i < count; i++) {
+		for (unsigned i = 0; i < count; i++) {
 			new->data[i] = RandomRange(0, INT_MAX);
 		}
 	}
@@ -43,8 +43,7 @@ buffer* allocate_buffer(buffer *head, const unsigned *data, unsigned count)
 	return new;
 }
 
-buffer* deallocate_buffer(buffer *head, unsigned i)
-{
+buffer *deallocate_buffer(buffer *head, unsigned i) {
 	buffer *prev = NULL;
 	buffer *to_free = head;
 

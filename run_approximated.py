@@ -36,7 +36,7 @@ def write_config(num_lps, num_threads, mode, percentage=1.0):
         f.write(f"#define NUM_THREADS {num_threads}\n")
         f.write(f"#define EXEC_MODE APPROXIMATED_MODE_{mode}\n")
         f.write(f"#define NUM_LPS {num_lps}\n")
-        f.write(f"#define RESTORE_PERCENTAGE {percentage}\n")
+        f.write(f"#define PRECISE_PERCENTAGE {percentage}\n")
 
 
 def rootsir_run(param_str, model_folder, collect_tbc=False):

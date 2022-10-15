@@ -135,10 +135,7 @@ ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, const unsigned *eve
 
 void RestoreApproximated(lp_id_t id, void *ptr) {
 	lp_state_type *state = (lp_state_type *) ptr;
-	unsigned i = state->buffer_count;
-	buffer *tmp = state->head;
-
-	while (i--) {
+	for(buffer *tmp = state->head; tmp; tmp = tmp->next) {
 		if (rs_is_alloced(tmp->data))
 			continue;
 		tmp->data = rs_malloc(sizeof(*tmp->data) * tmp->count);
@@ -146,7 +143,6 @@ void RestoreApproximated(lp_id_t id, void *ptr) {
 		for (unsigned j = 0; j < tmp->count; j++) {
 			tmp->data[j] = RandomRange(0, INT_MAX);
 		}
-		tmp = tmp->next;
 	}
 }
 

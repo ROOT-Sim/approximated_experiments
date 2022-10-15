@@ -138,6 +138,12 @@ void RestoreApproximated(lp_id_t id, void *ptr) {
 	for(buffer *tmp = state->head; tmp; tmp = tmp->next) {
 		if (rs_is_alloced(tmp->data))
 			continue;
+		tmp->data = NULL;
+	}
+
+	for(buffer *tmp = state->head; tmp; tmp = tmp->next) {
+		if (tmp->data)
+			continue;
 		tmp->data = rs_malloc(sizeof(*tmp->data) * tmp->count);
 		ApproximatedMemoryMark(tmp->data, false);
 		for (unsigned j = 0; j < tmp->count; j++) {

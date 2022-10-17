@@ -9,8 +9,7 @@ with open("tbc_stats_auto.txt", "r") as f:
 tbc_cats = ["healthy", "infected", "sick", "treatment", "treated"]
 
 fig, ax = plt.subplots()
-ax.stackplot(range(len(aggregate[0])), aggregate,
-             labels=tbc_cats, alpha=0.8)
+ax.stackplot(range(len(aggregate[0])), aggregate, labels=tbc_cats, alpha=0.8)
 ax.legend(loc='upper center')
 ax.set_title('Population')
 ax.set_xlabel('Day')

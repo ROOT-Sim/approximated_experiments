@@ -2,6 +2,8 @@
 import os
 from datetime import datetime
 
+from plots.plot import plot
+
 values_interations = range(3)
 values_threads = [16, 12, 8, 4, 1]
 values_mode = ["PRECISE", "APPROXIMATED", "AUTONOMIC"]
@@ -75,8 +77,9 @@ def collect_phold_data():
                 for mode in values_mode:
                     for percentage in values_phold_percentage:
                         if mode == "PRECISE":
-                            percentage = 1.0
-                        param_str = f"{num_lps}_{num_threads}_{mode}_{percentage}_{iteration}"
+                            param_str = f"{num_lps}_{num_threads}_{mode}_{iteration}"
+                        else:
+                            param_str = f"{num_lps}_{num_threads}_{mode}-{percentage}_{iteration}"
                         write_config(num_lps, num_threads, mode, percentage)
                         rootsir_run(param_str, "phold")
 
@@ -95,4 +98,4 @@ def collect_tbc_data():
 prepare_rootsim()
 collect_phold_data()
 collect_tbc_data()
-
+plot("data")

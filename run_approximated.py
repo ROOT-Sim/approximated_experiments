@@ -8,7 +8,7 @@ values_interations = range(3)
 values_threads = [16, 12, 8, 4, 1]
 values_mode = ["PRECISE", "APPROXIMATED", "AUTONOMIC"]
 values_phold_lps = [1024]
-values_phold_percentage = [0.25, 0.5, 0.75, 1.0]
+values_phold_percentage = [0.0, 0.25, 0.5, 0.75, 1.0]
 
 
 def prepare_rootsim():
@@ -38,7 +38,7 @@ def write_config(num_lps, num_threads, mode, percentage=1.0):
         f.write(f"#define NUM_THREADS {num_threads}\n")
         f.write(f"#define EXEC_MODE APPROXIMATED_MODE_{mode}\n")
         f.write(f"#define NUM_LPS {num_lps}\n")
-        f.write(f"#define PRECISE_PERCENTAGE {percentage}\n")
+        f.write(f"#define APPROXIMATED_PERCENTAGE {percentage}\n")
 
 
 def rootsir_run(param_str, model_folder, collect_tbc=False):

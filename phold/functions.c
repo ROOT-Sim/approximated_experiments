@@ -29,7 +29,7 @@ buffer *allocate_buffer(buffer *head, const unsigned *data, unsigned count) {
 	new->next = head;
 	new->count = count;
 	new->data = rs_malloc(count * sizeof(unsigned));
-	if(Random() > PRECISE_PERCENTAGE)
+	if(Random() < APPROXIMATED_PERCENTAGE)
 		ApproximatedMemoryMark(new->data, false);
 
 	if (data != NULL) {

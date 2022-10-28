@@ -44,38 +44,37 @@ void guy_init(struct drand48_data *rng_state)
 	}
 }
 
-void init_infected(struct guy_t *guy, region_t *region)
+void init_infected(struct guy_t *guy)
 {
 	// select a random age following the given distribution
 	unsigned i = 0;
-	double p;
-	drand48_r(&(region->random_initialization_buf), &p);
+	double p = Random();
 
 	while(p_infected_age[i] < p) {
 		++i;
 	}
 
-	guy->birth_day = 0 - RandomRangeCustom(region, 365 * age_groups[i], 365 * age_groups[i + 1] - 1);
+	guy->birth_day = 0 - RandomRange(365 * age_groups[i], 365 * age_groups[i + 1] - 1);
 
-	drand48_r(&(region->random_initialization_buf), &p);
+	p = Random();
 	// select random origin
 	if(p < p_infected_foreign)
 		bitmap_set(guy->flags, f_foreigner);
 	else
 		bitmap_reset(guy->flags, f_foreigner);
 
-	drand48_r(&(region->random_initialization_buf), &p);
+	p = Random();
 	// select random gender
 	if(p >= p_infected_male)
 		bitmap_set(guy->flags, f_female);
 	else
 		bitmap_reset(guy->flags, f_female);
 
-	set_risk_factors(guy, region);
+	set_risk_factors(guy);
 
 	// set a compatible infection time xxx this is fairly different from the original model
 	do {
-		guy->infection_day = 0 - RandomRangeCustom(region, 0, 365 * t_infected_max - 1);
+		guy->infection_day = 0 - RandomRange(0, 365 * t_infected_max - 1);
 	} while(guy->infection_day < guy->birth_day);
 }
 
@@ -83,29 +82,28 @@ static void sickened_base_setup(struct guy_t *guy, region_t *region)
 {
 	// select a random age following the given distribution
 	unsigned i = 0;
-	double p;
-	drand48_r(&(region->random_initialization_buf), &p);
+	double p = Random();
 	while(p_sickened_age[i] < p) {
 		++i;
 	}
 
-	guy->birth_day = 0 - RandomRangeCustom(region, 365 * age_groups[i], 365 * age_groups[i + 1] - 1);
+	guy->birth_day = 0 - RandomRange(365 * age_groups[i], 365 * age_groups[i + 1] - 1);
 
-	drand48_r(&(region->random_initialization_buf), &p);
+	p = Random();
 	// select random origin
 	if(p < p_sickened_foreign)
 		bitmap_set(guy->flags, f_foreigner);
 	else
 		bitmap_reset(guy->flags, f_foreigner);
 
-	drand48_r(&(region->random_initialization_buf), &p);
+	p = Random();
 	// select random gender
 	if(p >= p_sickened_male)
 		bitmap_set(guy->flags, f_female);
 	else
 		bitmap_reset(guy->flags, f_female);
 
-	drand48_r(&(region->random_initialization_buf), &p);
+	p = Random();
 	// set smear flag
 	if(p < p_smear)
 		bitmap_set(guy->flags, f_smear);
@@ -121,7 +119,7 @@ void init_sick(struct guy_t *guy, region_t *region)
 	// we suppose this guy has already been sick for some time
 	// (notice that this is equivalent to what is done in the original model
 	if(guy->treatment_day) {
-		guy->treatment_day -= RandomRangeCustom(region, 0, guy->treatment_day - 1);
+		guy->treatment_day -= RandomRange(0, guy->treatment_day - 1);
 	}
 }
 
@@ -131,7 +129,7 @@ void init_treatment(struct guy_t *guy, region_t *region)
 	// we suppose this guy has already been under treatment for some time
 	// (notice that this is equivalent to what is done in the original model)
 	guy->treatment_day =
-	    0 - RandomRangeCustom(region, 0, t_treatment_max - 1); // RandomRange(0, t_treatment_max - 1);
+	    0 - RandomRange(0, t_treatment_max - 1); // RandomRange(0, t_treatment_max - 1);
 }
 
 void init_treated(struct guy_t *guy, region_t *region)
@@ -139,9 +137,8 @@ void init_treated(struct guy_t *guy, region_t *region)
 	sickened_base_setup(guy, region);
 	// we suppose this guy has already been under treatment for some time
 	// (notice that this is equivalent to what is done in the original model)
-	double p;
-	drand48_r(&(region->random_initialization_buf), &p);
-	guy->treatment_day = p < p_abandon ? 0 - RandomRangeCustom(region, t_treatment_min, t_treatment_max - 1) :
+	double p = Random();
+	guy->treatment_day = p < p_abandon ? 0 - RandomRange(t_treatment_min, t_treatment_max - 1) :
 	                                     0 - (int)t_treatment_max;
 	// compute relapse probability
 	compute_relapse_p(guy, 0.0);
@@ -176,7 +173,7 @@ void guy_on_init(const init_t *init_data, region_t *region)
 				case HEALTHY:
 					break;
 				case INFECTED:
-					init_infected(guy, region);
+					init_infected(guy);
 					break;
 				case TREATED:
 					init_treated(guy, region);
@@ -190,13 +187,4 @@ void guy_on_init(const init_t *init_data, region_t *region)
 			}
 		}
 	}
-}
-
-int RandomRangeCustom(region_t *region, int min, int max)
-{
-	double ret;
-
-	ret = drand48_r(&(region->random_initialization_buf), &ret);
-
-	return (int)floor(ret * (max - min + 1)) + min;
 }

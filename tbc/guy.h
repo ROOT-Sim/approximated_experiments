@@ -51,7 +51,7 @@ struct guy_t {
 typedef struct _region_t {
 	unsigned agents_count[END_STATES];
 	simtime_t now;
-	struct drand48_data random_initialization_buf;
+	struct drand48_data rng_data;
 	struct guy_t agents[END_STATES];
 	unsigned stats_agents_count[GATHER_STATS_COUNT][END_STATES];
 } region_t;
@@ -68,7 +68,7 @@ bool guy_on_leave(struct guy_t *, region_t *region);
 void guy_on_infection(const infection_t *inf, region_t *region);
 
 void define_diagnose(struct guy_t *guy, simtime_t now);
-void set_risk_factors(struct guy_t *guy, region_t *region);
+void set_risk_factors(struct guy_t *guy);
 void compute_relapse_p(struct guy_t* guy, simtime_t now);
 
 void guy_init_list(struct guy_t *head);

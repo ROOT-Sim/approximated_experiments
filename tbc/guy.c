@@ -141,10 +141,9 @@ void define_diagnose(struct guy_t *guy, simtime_t now)
 	guy->treatment_day = now + delay;
 }
 
-void set_risk_factors(struct guy_t *guy, region_t *region)
+void set_risk_factors(struct guy_t *guy)
 {
-	double randomNumber;
-	drand48_r(&(region->random_initialization_buf), &randomNumber);
+	double randomNumber = Random();
 
 	// set risks factor
 	if(randomNumber < p_HIV)
@@ -152,14 +151,14 @@ void set_risk_factors(struct guy_t *guy, region_t *region)
 	else
 		bitmap_reset(guy->flags, f_has_hiv);
 
-	drand48_r(&(region->random_initialization_buf), &randomNumber);
+        randomNumber = Random();
 
 	if(randomNumber < p_smoking)
 		bitmap_set(guy->flags, f_smokes);
 	else
 		bitmap_reset(guy->flags, f_smokes);
 
-	drand48_r(&(region->random_initialization_buf), &randomNumber);
+        randomNumber = Random();
 
 	if(randomNumber < p_diabetes)
 		bitmap_set(guy->flags, f_has_diabetes);
@@ -215,13 +214,11 @@ static bool guy_infected_update(struct guy_t *guy, region_t *region, simtime_t n
 	// factor to fit desired behaviour (XXX: need to understand better)
 	prob *= 0.9;
 
-	double randomNumber;
-
-	drand48_r(&(region->random_initialization_buf), &randomNumber);
+	double randomNumber = Random();
 
 	// the actual check is done here
 	if(randomNumber < prob) {
-		drand48_r(&(region->random_initialization_buf), &randomNumber);
+		randomNumber = Random();
 		// decide if this is a smear positive case
 		if(randomNumber < p_smear)
 			bitmap_set(guy->flags, f_smear);
@@ -244,8 +241,7 @@ static void guy_treatment_update(struct guy_t *guy, simtime_t now, region_t *reg
 	// static const double daily_prob = p_abandon/t_treatment_max;
 	static const double daily_prob = 0.022 / 180;
 
-	double randomNumber;
-	drand48_r(&(region->random_initialization_buf), &randomNumber);
+	double randomNumber = Random();
 
 	// a guy can either prematurely abandon the treatment or just complete it
 	if(randomNumber < daily_prob || now >= guy->treatment_day + t_treatment_max) {
@@ -266,8 +262,7 @@ static bool guy_treated_update(struct guy_t *guy, region_t *region)
 		guy_change_state(region, guy, HEALTHY);
 		return false;
 	} else {
-		double randomNumber;
-		drand48_r(&(region->random_initialization_buf), &randomNumber);
+		double randomNumber = Random();
 
 		if(randomNumber < guy->p_relapse) {
 			// ... or can get sick again...
@@ -342,7 +337,9 @@ void guy_move(unsigned me, region_t *region)
 				init_guy(region, HEALTHY);
 				continue;
 			}
-			unsigned i = Random() * neighbours;
+			double r;
+			drand48_r(&region->rng_data, &r);
+			unsigned i = r * neighbours;
 			curr_agent = curr_agent->next;
 			guy_add_head(&agents[i], old_agent);
 			agents_count[i]++;
@@ -384,8 +381,7 @@ void guy_move(unsigned me, region_t *region)
 
 bool guy_on_leave(struct guy_t *guy, region_t *region)
 {
-	double randomNumber;
-	drand48_r(&(region->random_initialization_buf), &randomNumber);
+	double randomNumber = Random();
 
 	bool guy_dies = false;
 	if(guy->state != SICK) {
@@ -434,12 +430,11 @@ static int infected_age(const infection_t *inf)
 unsigned infected_gender_origin(const infection_t *inf, region_t *region)
 {
 	unsigned i, j = 0;
-	double r;
+	double r = Random();
 
 	i = bitmap_check(inf->flags, infl_female) + 2 * bitmap_check(inf->flags, infl_foreigner);
 	// i. 0: native male, 1: native female, 2: foreign male, 3: foreign female
 
-	drand48_r(&(region->random_initialization_buf), &r);
 	while(p_origin_gender[i][j] < r)
 		j++;
 
@@ -454,7 +449,7 @@ void guy_on_infection(const infection_t *inf, region_t *region)
 	// as in the original model, each healthy person has the same probability
 	// of becoming infected (but we do this more efficiently using a binomial PRNG)
 	unsigned infections = random_binomial(region->agents_count[HEALTHY],
-	    (1 + bitmap_check(inf->flags, infl_smear)) * infection_p, &region->random_initialization_buf);
+	    (1 + bitmap_check(inf->flags, infl_smear)) * infection_p, &region->rng_data);
 	// the infected guys of course diminish the healthy population
 	unsigned aux;
 
@@ -477,7 +472,7 @@ void guy_on_infection(const infection_t *inf, region_t *region)
 		else
 			bitmap_reset(guy->flags, f_foreigner);
 
-		set_risk_factors(guy, region);
+		set_risk_factors(guy);
 		// set infected state
 		guy_change_state(region, guy, INFECTED);
 		// we immediately schedule the first agent hop

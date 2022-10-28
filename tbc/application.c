@@ -74,7 +74,7 @@ void ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, union event_t 
 
 			ApproximatedModeSwitch(EXEC_MODE);
 
-			srand48_r(Random() * INT_MAX, &(region->random_initialization_buf));
+			srand48_r(Random() * INT_MAX, &(region->rng_data));
 
 			// initialize lists
 			int j = END_STATES;
@@ -84,7 +84,7 @@ void ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, union event_t 
 
 			if (!me) {
 				// this function let LP0 coordinate the init phase
-				guy_init(&region->random_initialization_buf);
+				guy_init(&region->rng_data);
 			}
 			unsigned phase = 0;
 			ScheduleNewEvent(me, (conf.termination_time - 1) / GATHER_STATS_COUNT + now, GATHER_STATS, &phase,

@@ -20,10 +20,9 @@ struct _init_t {
 void guy_init(struct drand48_data *rng_state);
 void guy_on_init(const init_t *init_data, region_t *region);
 
-void init_infected(struct guy_t *guy, region_t *region);
+void init_infected(struct guy_t *guy);
 void init_sick(struct guy_t *guy, region_t *region);
 void init_treatment(struct guy_t *guy, region_t *region);
 void init_treated(struct guy_t *guy, region_t *region);
-int RandomRangeCustom(region_t *region, int min, int max);
 
 #endif /* MODELS_TUBERCOLOSIS_GUY_INIT_H_ */

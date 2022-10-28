@@ -1,4 +1,6 @@
 import os
+import sys
+
 import matplotlib.pyplot as plt
 
 from rootsim_core.src.log.parse.rootsim_stats import RSStats
@@ -84,6 +86,15 @@ def plot_draw(threads, data, data_label, title):
     plt.savefig(f"plot_{title.replace(' ', '_')}.png", dpi=100)
 
 
+def convert_to_relative_to_precise(data):
+    precise_data = data["PRECISE"]
+    del data["PRECISE"]
+    for mode, d in data.items():
+        for i, dd in enumerate(zip(d, precise_data)):
+            d[i] = dd[1]/dd[0]
+    return data
+
+
 def plot(dir_name):
     plt.rcParams['font.family'] = ['monospace']
     plt.rcParams["axes.unicode_minus"] = False
@@ -104,3 +115,7 @@ def plot(dir_name):
     plot_draw(threads, data_tbc_memory, "Memory", "TBC memory usage")
     plot_draw(threads, data_tbc_exec, "Time", "TBC execution time")
     plot_draw(threads, data_tbc_eff, "Efficiency", "TBC efficiency")
+
+
+if __name__ == "__main__":
+    plot(sys.argv[1])

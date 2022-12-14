@@ -72,7 +72,11 @@ void ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, union event_t 
 			memset(region, 0, sizeof(*region));
 			SetState(region);
 
+#if MANUAL_MODE > 0
+			state = region;
+#else
 			ApproximatedModeSwitch(EXEC_MODE);
+#endif
 
 			srand48_r(Random() * INT_MAX, &(region->rng_data));
 
@@ -124,7 +128,7 @@ void ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, union event_t 
 					stats[i][k] += state->stats_agents_count[i][k];
 
 			if (me != NUM_LPS - 1)
-				break;
+				return;
 
 			FILE *f = fopen("tbc_stats.txt", "w");
 			for (unsigned i = 0; i < GATHER_STATS_COUNT; ++i) {
@@ -132,13 +136,26 @@ void ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, union event_t 
 					fprintf(f, "%u ", stats[i][k]);
 				fprintf(f, "\n");
 			}
-			break;
+			return;
 
 		default:
 			printf("%s:%d: Unsupported event: %d\n", __FILE__, __LINE__, event_type);
 			exit(EXIT_FAILURE);
 	}
-
+#if MANUAL_MODE > 0
+	int j = END_STATES;
+	unsigned t = 0;
+	while (j--) {
+		t += state->agents_count[j];
+	}
+#endif
+#if MANUAL_MODE == 1
+	ApproximatedModeSwitch(
+			2 * state->agents_count[PRECISE_STATE] > t ? APPROXIMATED_MODE_PRECISE : APPROXIMATED_MODE_APPROXIMATED);
+#elif MANUAL_MODE == 2
+	ApproximatedModeSwitch(
+			2 * state->agents_count[PRECISE_STATE] < t ? APPROXIMATED_MODE_PRECISE : APPROXIMATED_MODE_APPROXIMATED);
+#endif
 }
 
 bool CanEnd(lp_id_t me, const void *snapshot)
@@ -148,8 +165,7 @@ bool CanEnd(lp_id_t me, const void *snapshot)
 	return false;
 }
 
-void RestoreApproximated(lp_id_t me, void *ptr)
-{
+void RestoreApproximated(lp_id_t me, void *ptr) {
 	(void) me;
 	region_t *region = ptr;
 	init_t init_data;
@@ -168,9 +184,8 @@ void RestoreApproximated(lp_id_t me, void *ptr)
 
 struct topology *topology;
 
-int main(void)
-{
-	topology = InitializeTopology(TOPOLOGY_SQUARE, (unsigned)sqrt(NUM_LPS), (unsigned)sqrt(NUM_LPS));
+int main(void) {
+	topology = InitializeTopology(TOPOLOGY_SQUARE, (unsigned) sqrt(NUM_LPS), (unsigned) sqrt(NUM_LPS));
 	conf.prng_seed = time(NULL);
 	RootsimInit(&conf);
 	return RootsimRun();

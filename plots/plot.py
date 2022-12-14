@@ -1,11 +1,25 @@
+from rootsim_core.src.log.parse.rootsim_stats import RSStats
+
 import os
 import sys
 
 import matplotlib.pyplot as plt
 
-from rootsim_core.src.log.parse.rootsim_stats import RSStats
-
 stats_names = {0: "time", 1: "memory", 2: "efficiency"}
+
+mode_colors = {"APPROXIMATED": (1.0, 102/255, 0),
+               "PRECISE": (102/255, 1.0, 51/255),
+               "AUTONOMIC": (51/255, 102/255, 1.0),
+               "APPROXIMATED-0.25": (0.4, 117/255, 0),
+               "APPROXIMATED-0.5": (0.6, 112/255, 0),
+               "APPROXIMATED-0.75": (0.8, 107/255, 0),
+               "APPROXIMATED-1.0": (1.0, 102/255, 0),
+               "AUTONOMIC-0.25": (51/255, 117/255, 0.4),
+               "AUTONOMIC-0.5": (51/255, 112/255, 0.6),
+               "AUTONOMIC-0.75": (51/255, 107/255, 0.8),
+               "AUTONOMIC-1.0": (51/255, 102/255, 1.0),
+               "MANUAL": (204/255, 0, 102/255),
+               "MANUALINV": (102/255, 0, 204/255)}
 
 
 def load_rs_stats_file(file_name):
@@ -33,6 +47,8 @@ def load_rs_data(dir_name):
 
         threads, *stats = load_rs_stats_file(f)
         threads = int(threads)
+        if threads == 88:
+            continue
         stats_count = max(len(stats), stats_count)
         model_name = filename.split("_")[0]
         approx_mode = filename.split("_")[3]
@@ -67,54 +83,62 @@ def load_rs_data(dir_name):
     return threads_counts, final_data
 
 
-def plot_draw(threads, data, data_label, title):
-    plt.clf()
-    fig, figxs = plt.subplots()
+def plot_draw(threads, data, data_label, figxs):
     figxs.set_xticks(threads)
     for mode, d in data.items():
-        figxs.plot(threads, d, marker='.', markersize=3, label=mode)
-    figxs.set_xlabel('Threads')
+        if mode.endswith("-0.0"):
+            continue
+        if mode == "MANUALINV":
+            label = "Manual alt"
+        else:
+            label = mode.lower().capitalize()
+        figxs.plot(threads, d, marker='.', markersize=5, linewidth=1.5, label=label, color=mode_colors[mode],
+                   markeredgecolor="midnightblue", markeredgewidth=0.1)
+
+    figxs.set_xlabel('# Worker threads')
     figxs.set_ylabel(data_label)
-    figxs.set_title(title)
-    figxs.set_ylim(bottom=0)
-    figxs.label_outer()
     figxs.grid(True)
-    handles, labels = figxs.get_legend_handles_labels()
-    # sort both labels and handles by labels
-    labels, handles = zip(*sorted(zip(labels, handles), key=lambda t: t[0]))
-    figxs.legend(handles, labels)
-    plt.savefig(f"plot_{title.replace(' ', '_')}.png", dpi=100)
 
 
 def convert_to_relative_to_precise(data):
-    precise_data = data["PRECISE"]
-    del data["PRECISE"]
+    precise_data = list(data["PRECISE"])
     for mode, d in data.items():
-        for i, dd in enumerate(zip(d, precise_data)):
-            d[i] = dd[1]/dd[0]
+        for i in range(len(d)):
+            d[i] = precise_data[i] / d[i] * 100 - 100
     return data
 
 
+def plot_model(model_name, threads, data):
+    plt.clf()
+    figsize = plt.figaspect(10/32)
+    fig, figxs = plt.subplots(1, 3, figsize=figsize)
+
+    memory_data = {id_tup[2]: d for id_tup, d in data.items() if id_tup[0] == model_name and id_tup[1] == "memory"}
+    for _, l in memory_data.items():  # convert in gigabytes
+        for i in range(len(l)):
+            l[i] /= 1024 * 1024 * 1024
+
+    exec_time_data = {id_tup[2]: d for id_tup, d in data.items() if id_tup[0] == model_name and id_tup[1] == "time"}
+    eff_data = {id_tup[2]: d for id_tup, d in data.items() if id_tup[0] == model_name and id_tup[1] == "efficiency"}
+
+    plot_draw(threads, convert_to_relative_to_precise(exec_time_data), "Relative speedup w.r.t. precise mode (%)", figxs[0])
+    plot_draw(threads, memory_data, "Memory usage (GB)", figxs[1])
+    plot_draw(threads, eff_data, "Efficiency (%)", figxs[2])
+
+    handles, labels = figxs[0].get_legend_handles_labels()
+    labels, handles = zip(*sorted(zip(labels, handles), key=lambda t: t[0]))
+    fig.legend(handles, labels, bbox_to_anchor=(0, 1.0, 1, 0.0), loc='center', borderaxespad=0, ncol=5, frameon=False, fontsize="large")
+    plt.savefig(f"plot_{model_name}.eps", dpi=300, bbox_inches='tight')
+
+
 def plot(dir_name):
-    plt.rcParams['font.family'] = ['monospace']
+    plt.rcParams['font.family'] = ['sans']
     plt.rcParams["axes.unicode_minus"] = False
-    plt.rcParams["image.cmap"] = "Set2"
-    plt.rcParams['axes.prop_cycle'] = plt.cycler(color=plt.cm.Set2.colors)
 
     threads, data = load_rs_data(dir_name)
-    data_phold_memory = {id_tup[2]: d for id_tup, d in data.items() if id_tup[0] == "phold" and id_tup[1] == "memory"}
-    data_tbc_memory = {id_tup[2]: d for id_tup, d in data.items() if id_tup[0] == "tbc" and id_tup[1] == "memory"}
-    data_phold_exec = {id_tup[2]: d for id_tup, d in data.items() if id_tup[0] == "phold" and id_tup[1] == "time"}
-    data_tbc_exec = {id_tup[2]: d for id_tup, d in data.items() if id_tup[0] == "tbc" and id_tup[1] == "time"}
-    data_phold_eff = {id_tup[2]: d for id_tup, d in data.items() if id_tup[0] == "phold" and id_tup[1] == "efficiency"}
-    data_tbc_eff = {id_tup[2]: d for id_tup, d in data.items() if id_tup[0] == "tbc" and id_tup[1] == "efficiency"}
 
-    plot_draw(threads, data_phold_memory, "Memory", "PHOLD memory usage")
-    plot_draw(threads, data_phold_exec, "Time", "PHOLD execution time")
-    plot_draw(threads, data_phold_eff, "Efficiency", "PHOLD efficiency")
-    plot_draw(threads, data_tbc_memory, "Memory", "TBC memory usage")
-    plot_draw(threads, data_tbc_exec, "Time", "TBC execution time")
-    plot_draw(threads, data_tbc_eff, "Efficiency", "TBC efficiency")
+    plot_model("phold", threads, data)
+    plot_model("tbc", threads, data)
 
 
 if __name__ == "__main__":

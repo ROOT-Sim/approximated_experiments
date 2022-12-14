@@ -6,7 +6,7 @@ from plots.plot import plot
 
 values_interations = range(3)
 values_threads = [16, 12, 8, 4, 1]
-values_mode = ["PRECISE", "APPROXIMATED", "AUTONOMIC"]
+values_mode = ["PRECISE", "APPROXIMATED", "AUTONOMIC", "MANUAL", "MANUALINV"]
 values_phold_lps = [1024]
 values_phold_percentage = [0.0, 0.25, 0.5, 0.75, 1.0]
 
@@ -39,6 +39,12 @@ def write_config(num_lps, num_threads, mode, percentage=1.0):
         f.write(f"#define EXEC_MODE APPROXIMATED_MODE_{mode}\n")
         f.write(f"#define NUM_LPS {num_lps}\n")
         f.write(f"#define APPROXIMATED_PERCENTAGE {percentage}\n")
+        if mode == "MANUAL":
+            f.write(f"#define MANUAL_MODE 1\n")
+        elif mode == "MANUALINV":
+            f.write(f"#define MANUAL_MODE 2\n")
+        else:
+            f.write(f"#define MANUAL_MODE 0\n")
 
 
 def rootsir_run(param_str, model_folder, collect_tbc=False):
@@ -65,7 +71,6 @@ def rootsir_run(param_str, model_folder, collect_tbc=False):
         os.system("rm -f tbc_stats.txt")
     os.system(f"mv root_sir_stats_phases.txt data/{model_folder}_{param_str}_phases.txt")
     os.system(f"mv root_sir_stats.bin data/{model_folder}_{param_str}.bin")
-    return
 
 
 # Collect data for all configurations and model versions
@@ -98,4 +103,4 @@ def collect_tbc_data():
 prepare_rootsim()
 collect_phold_data()
 collect_tbc_data()
-plot("data")
+plot("data_compute")

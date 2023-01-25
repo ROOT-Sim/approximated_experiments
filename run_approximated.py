@@ -81,6 +81,8 @@ def collect_phold_data():
             for num_lps in values_phold_lps:
                 for mode in values_mode:
                     for percentage in values_phold_percentage:
+                        if mode.startswith("MANUAL"):
+                            continue
                         if mode == "PRECISE":
                             param_str = f"{num_lps}_{num_threads}_{mode}_{iteration}"
                         else:

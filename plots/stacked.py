@@ -40,34 +40,34 @@ def do_plot(dir_name, threads):
     ax.set_xticklabels([])
     ax.stackplot(xs, data, labels=tbc_cats)
     ax.yaxis.set_label_position("right")
-    ax.set_ylabel("Precise")
+    ax.set_ylabel("Precise", size="small")
 
     ax = axs[1]
     data = fetch_data(dir_name, f"{threads}_APPROXIMATED")
     ax.set_xticklabels([])
     ax.stackplot(xs, data, labels=tbc_cats)
     ax.yaxis.set_label_position("right")
-    ax.set_ylabel("Approximated")
+    ax.set_ylabel("Approximated", size="small")
 
     ax = axs[2]
     data = fetch_data(dir_name, f"{threads}_AUTONOMIC")
     ax.stackplot(xs, data, labels=tbc_cats)
     ax.set_xticklabels([])
     ax.yaxis.set_label_position("right")
-    ax.set_ylabel("Autonomic")
+    ax.set_ylabel("Autonomic", size="small")
 
     ax = axs[3]
     data = fetch_data(dir_name, f"{threads}_MANUAL")
     ax.stackplot(xs, data, labels=tbc_cats)
     ax.set_xticklabels([])
     ax.yaxis.set_label_position("right")
-    ax.set_ylabel("Manual")
+    ax.set_ylabel("Manual", size="small")
 
     ax = axs[4]
     data = fetch_data(dir_name, f"{threads}_MANUALINV")
     ax.stackplot(xs, data, labels=tbc_cats)
     ax.yaxis.set_label_position("right")
-    ax.set_ylabel("Inv Manual")
+    ax.set_ylabel("Inv Manual", size="small")
 
     fig.supylabel('Agents (in millions)', x=0.04)
     fig.supxlabel('Simulated day')

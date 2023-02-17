@@ -1,17 +1,18 @@
 import os
 
 import numpy as np
+import matplotlib as mpl
 from matplotlib import pyplot as plt
 
-lps_dim = 128
-rows_per_lp = 1000
+tbc_side_len = 128
+INTERVALS_COUNT = 1000
 
 
-def load_full_data(dir_name):
-    data = np.zeros((lps_dim, lps_dim))
+def agent_heatmap_data_prepare(dir_name):
+    data = np.zeros(tbc_side_len * tbc_side_len)
     n = 0
     for filename in os.listdir(dir_name):
-        if not filename.startswith("tbc_stats_"):
+        if not filename.endswith("_tbc_stats.txt") or "PRECISE" not in filename or "agents-count" not in filename:
             continue
 
         f = os.path.join(dir_name, filename)
@@ -21,29 +22,33 @@ def load_full_data(dir_name):
         n += 1
         with open(f, "r") as f:
             for i, l in enumerate(f):
+                if i >= tbc_side_len * tbc_side_len:
+                    break
                 n_agents = sum([int(v) for v in l.split()])
-                lp_id = i // rows_per_lp
-                data[lp_id // lps_dim][lp_id % lps_dim] += n_agents
+                data[i] += n_agents
 
-    data = data / rows_per_lp
-    data = data / n
-    return data
-
-
-def lpid_to_tid(lps, lp_id, threads):
-    return lp_id * threads // lps
+    with open("full_tbc_stats.txt", "w") as f:
+        for v in data:
+            f.write(f"{v / (n * INTERVALS_COUNT)}\n")
 
 
-def load_data(threads):
-    data = np.zeros((lps_dim, lps_dim))
+def x_y_to_tid(i, j, threads):
+    return (i * tbc_side_len + j) * threads // (tbc_side_len * tbc_side_len)
+
+
+def load_data(threads=None):
+    data = np.zeros((tbc_side_len, tbc_side_len))
     with open("full_tbc_stats.txt", "r") as f:
         for i, l in enumerate(f):
-            data[i // lps_dim][i % lps_dim] = float(l)
+            data[i // tbc_side_len][i % tbc_side_len] = float(l)
+
+    if threads is None:
+        return data
 
     threads_data = [(0, 0) for _ in range(threads)]
-    for i in range(lps_dim):
-        for j in range(lps_dim):
-            tid = lpid_to_tid(lps_dim * lps_dim, i * lps_dim + j, threads)
+    for i in range(tbc_side_len):
+        for j in range(tbc_side_len):
+            tid = x_y_to_tid(i, j, threads)
             tot, cnt = threads_data[tid]
             tot += data[i][j]
             cnt += 1
@@ -51,9 +56,9 @@ def load_data(threads):
 
     ret_data = [tot for tot, cnt in threads_data]
 
-    for i in range(lps_dim):
-        for j in range(lps_dim):
-            tid = lpid_to_tid(lps_dim * lps_dim, i * lps_dim + j, threads)
+    for i in range(tbc_side_len):
+        for j in range(tbc_side_len):
+            tid = x_y_to_tid(i, j, threads)
             data[i][j] = ret_data[tid]
 
     return data
@@ -66,11 +71,13 @@ def agents_heatmap_thread_plot(threads):
     fig, ax = plt.subplots()
     data = load_data(threads)
     plt.gca().set_aspect('equal')
-    ax.xaxis.set_ticks([0, 128])
-    ax.yaxis.set_ticks([0, 128])
+    ax.xaxis.set_ticks([0, tbc_side_len])
+    ax.yaxis.set_ticks([0, tbc_side_len])
     ax.set_xlabel("x", labelpad=-10)
     ax.set_ylabel("y", rotation=0, labelpad=-15)
-    print(np.min(data), np.max(data))
+    print(f"With the currently computed agent distributions with {threads} threads we have "
+          f"{100 * np.max(data) / np.min(data) - 100:3.1f}% max unbalance")
+
     vmin = round(np.min(data), -3)
     vmax = round(np.max(data), -3) + 1000
     im = ax.pcolormesh(data, cmap='copper_r', vmin=vmin, vmax=vmax, rasterized=True)
@@ -78,17 +85,36 @@ def agents_heatmap_thread_plot(threads):
     cbar.set_ticks([vmin, vmax])
     cbar.set_label('Average number of agents handled by thread', rotation=270, labelpad=-23)
 
-    for i in reversed(range(lps_dim)):
-        for j in range(lps_dim):
-            tid = lpid_to_tid(lps_dim * lps_dim, i * lps_dim + j, threads)
-            tid_up = lpid_to_tid(lps_dim * lps_dim, (i + 1) * lps_dim + j, threads)
-            tid_left = lpid_to_tid(lps_dim * lps_dim, i * lps_dim + j + 1, threads)
-            if tid != tid_up and i + 1 != lps_dim:
+    for i in reversed(range(tbc_side_len)):
+        for j in range(tbc_side_len):
+            tid = x_y_to_tid(i, j, threads)
+            tid_up = x_y_to_tid(i + 1, j, threads)
+            tid_left = x_y_to_tid(i, j + 1, threads)
+            if tid != tid_up and i + 1 != tbc_side_len:
                 ax.add_line(
                     plt.Line2D((j, j + 1), (i + 1, i + 1), linewidth=0.3, color="maroon", solid_capstyle='butt'))
 
-            if tid != tid_left and j + 1 != lps_dim:
+            if tid != tid_left and j + 1 != tbc_side_len:
                 ax.add_line(
                     plt.Line2D((j + 1, j + 1), (i, i + 1), linewidth=0.3, color="maroon", solid_capstyle='butt'))
 
     plt.savefig(f"agents_partitioning_{threads}.eps", dpi=300, bbox_inches='tight')
+
+
+def agents_heatmap_plot():
+    plt.rcParams['font.family'] = ['sans']
+    plt.rcParams["axes.unicode_minus"] = False
+
+    fig, ax = plt.subplots()
+    data = load_data()
+    plt.gca().set_aspect('equal')
+    ax.xaxis.set_ticks([0, tbc_side_len])
+    ax.yaxis.set_ticks([0, tbc_side_len])
+    ax.set_xlabel("x", labelpad=-10)
+    ax.set_ylabel("y", rotation=0, labelpad=-15)
+    im = ax.pcolormesh(data, cmap='copper_r', norm=mpl.colors.PowerNorm(3, vmin=50, vmax=100), linewidth=0,
+                       rasterized=True)
+    cbar = fig.colorbar(im)
+    cbar.set_ticks([50, 100])
+    cbar.set_label('Average number of agents', rotation=270, labelpad=-10)
+    plt.savefig(f"average_agents.eps", dpi=300, bbox_inches='tight')

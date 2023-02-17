@@ -21,6 +21,10 @@ experiments_config = {
     "tbc-long": {
         "threads": [],
         "repetitions": 0
+    },
+    "tbc-agents-count": {
+        "threads": 0,
+        "repetitions": 0
     }
 }
 
@@ -55,14 +59,16 @@ def prepare_rootsim():
     print("ROOT-Sim successfully built")
 
 
-def write_config(num_lps, num_threads, mode, percentage=1.0, long=False):
+def write_config(num_lps, num_threads, mode, percentage=1.0, tbc_long=False, tbc_agents_count=False):
     with open("config.h", "w") as f:
         f.write("#pragma once\n\n")
         f.write(f"#define NUM_THREADS {num_threads}\n")
         f.write(f"#define EXEC_MODE APPROXIMATED_MODE_{mode}\n")
         f.write(f"#define NUM_LPS {num_lps}\n")
         f.write(f"#define APPROXIMATED_PERCENTAGE {percentage}\n")
-        if long:
+        if tbc_agents_count:
+            f.write("#define TBC_FULL_COUNT\n")
+        if tbc_long:
             f.write("#define TBC_LONG_RUN\n")
         if mode == "MANUAL-A":
             f.write(f"#define MANUAL_MODE 1\n")
@@ -124,13 +130,23 @@ def collect_tbc_data():
     print("TBC experiments completed")
 
 
+def collect_tbc_agents_count_data():
+    os.system("mkdir -p data")
+    num_threads = experiments_config["tbc-agents-count"]["threads"]
+    for iteration in range(experiments_config["tbc-agents-count"]["repetitions"]):
+        write_config(tbc_lps, num_threads, "PRECISE", tbc_agents_count=True)
+        param_str = f"{tbc_lps}-agents-count_{num_threads}_PRECISE_{iteration}"
+        rootsir_run(param_str, "tbc", collect_tbc=True)
+    print("TBC-agents-count experiments completed")
+
+
 def collect_tbc_long_data():
     os.system("mkdir -p data")
     for iteration in range(experiments_config["tbc-long"]["repetitions"]):
         for num_threads in experiments_config["tbc-long"]["threads"]:
             for mode in tbc_modes:
-                write_config(tbc_lps, num_threads, mode, long=True)
-                param_str = f"-long_{tbc_lps}_{num_threads}_{mode}_{iteration}"
+                write_config(tbc_lps, num_threads, mode, tbc_long=True)
+                param_str = f"{tbc_lps}-long_{num_threads}_{mode}_{iteration}"
                 rootsir_run(param_str, "tbc", collect_tbc=True)
     print("TBC-long experiments completed")
 
@@ -139,5 +155,6 @@ load_configuration()
 prepare_rootsim()
 collect_phold_data()
 collect_tbc_data()
+collect_tbc_agents_count_data()
 collect_tbc_long_data()
 print("Experiments completed!")

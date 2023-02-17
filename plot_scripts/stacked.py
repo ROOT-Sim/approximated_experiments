@@ -3,14 +3,16 @@ import os
 import matplotlib.pyplot as plt
 
 tbc_cats = ["Healthy", "Infected", "Sick", "Treatment", "Treated"]
-vt_per_interval = 5
+
+LONG_RUN_MAX_VT = 10000
+INTERVALS_COUNT = 1000
 
 
 def fetch_data(dir_name, intervals, mode):
     n = 0
     aggregate = [[0 for _ in range(intervals)] for _ in range(5)]
     for filename in os.listdir(dir_name):
-        if not filename.endswith("tbc_stats.txt") or not filename.startswith(f"tbc_16384_") or filename.find(mode) == -1:
+        if not filename.endswith("tbc_stats.txt") or filename.find(mode) == -1 or "long" not in filename:
             continue
 
         f = os.path.join(dir_name, filename)
@@ -32,7 +34,13 @@ def fetch_data(dir_name, intervals, mode):
     return aggregate
 
 
-def stacked_plot(dir_name, threads, intervals):
+def stacked_plot(dir_name, threads, max_vt_to_show):
+    if max_vt_to_show > LONG_RUN_MAX_VT:
+        raise RuntimeError("vt is too high w.r.t. to our current experiment set")
+
+    vt_per_interval = LONG_RUN_MAX_VT / INTERVALS_COUNT
+    intervals = max_vt_to_show * INTERVALS_COUNT // LONG_RUN_MAX_VT
+
     xs = [vt_per_interval * i for i in range(intervals)]
 
     fig, axs = plt.subplots(4, 1)
@@ -69,4 +77,4 @@ def stacked_plot(dir_name, threads, intervals):
     handles, labels = axs[0].get_legend_handles_labels()
     labels, handles = zip(*sorted(zip(labels, handles), key=lambda t: t[0]))
     fig.legend(handles, labels, bbox_to_anchor=(0, 0.95, 1.0, 0.0), loc='center', borderaxespad=0, ncol=5, frameon=False, fontsize="medium")
-    plt.savefig(f"plot_{dir_name}_{threads}_evolution.eps", dpi=200, bbox_inches='tight')
+    plt.savefig(f"plot_{dir_name}_{threads}_{intervals}_tbc_evolution.eps", dpi=200, bbox_inches='tight')

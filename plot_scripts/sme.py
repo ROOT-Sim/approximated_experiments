@@ -42,7 +42,7 @@ def load_rs_data(dir_name):
     threads_counts = set()
     stats_count = 0
     for filename in os.listdir(dir_name):
-        if not filename.endswith(".bin"):
+        if not filename.endswith(".bin") or "long" in filename or "agents-count" in filename:
             continue
 
         f = os.path.join(dir_name, filename)

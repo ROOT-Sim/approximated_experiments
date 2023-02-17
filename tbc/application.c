@@ -127,17 +127,23 @@ void ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, union event_t 
 			break;
 
 		case LP_FINI:;
+#ifdef TBC_FULL_COUNT
+			static unsigned stats[NUM_LPS][1] = {0};
+			for (unsigned i = 0; i < GATHER_STATS_COUNT; ++i)
+				for (int k = 0; k < END_STATES; ++k)
+					stats[me][0] += state->stats_agents_count[i][k];
+#else
 			static unsigned stats[GATHER_STATS_COUNT][END_STATES] = {0};
 			for (unsigned i = 0; i < GATHER_STATS_COUNT; ++i)
 				for (int k = 0; k < END_STATES; ++k)
 					stats[i][k] += state->stats_agents_count[i][k];
-
+#endif
 			if (me != NUM_LPS - 1)
 				return;
 
 			FILE *f = fopen("tbc_stats.txt", "w");
-			for (unsigned i = 0; i < GATHER_STATS_COUNT; ++i) {
-				for (int k = 0; k < END_STATES; ++k)
+			for (unsigned i = 0; i < sizeof(stats) / sizeof(*stats); ++i) {
+				for (int k = 0; k < sizeof(*stats) / sizeof(**stats); ++k)
 					fprintf(f, "%u ", stats[i][k]);
 				fprintf(f, "\n");
 			}

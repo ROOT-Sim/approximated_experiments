@@ -98,7 +98,7 @@ def get_latencies_data(latency_file, threads):
     return np.array(data)
 
 
-def plot_heatmap(dir_name, threads=1, latencies=None):
+def autonomic_heatmap_plot(dir_name, threads=1):
     plt.rcParams['font.family'] = ['monospace']
     plt.rcParams["axes.unicode_minus"] = False
     fig, ax = plt.subplots()
@@ -118,12 +118,6 @@ def plot_heatmap(dir_name, threads=1, latencies=None):
     plt.gca().set_aspect('equal')
 
     lat_colors = ['maroon' for _ in range(threads - 1)]
-    if latencies:
-        lat_data = get_latencies_data(latencies, threads)
-        adjacent_lat_data = [lat_data[i][i + 1] for i in range(threads - 1)]
-        norm = mpl.colors.Normalize(vmin=min(adjacent_lat_data), vmax=max(adjacent_lat_data))
-        cmap = mpl.cm.get_cmap('Reds')
-        lat_colors = [cmap(norm(v)) for v in adjacent_lat_data]
 
     proc_load_data = get_precise_thread_load(dir_name, threads)
     proc_data_max = round(max(proc_load_data) + 1, -6) + 1000000

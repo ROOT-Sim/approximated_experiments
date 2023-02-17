@@ -34,6 +34,7 @@ union event_t {
 	const infection_t *i_m;
 	const init_t *in_m;
 	const unsigned *phase;
+	const void *raw;
 };
 
 extern void ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, union event_t event_content, unsigned int event_size, region_t *state);
@@ -43,7 +44,11 @@ extern void RestoreApproximated(lp_id_t id, void *ptr);
 struct simulation_configuration conf = {
     .lps = NUM_LPS,
     .n_threads = NUM_THREADS,
-    .termination_time = 1000,
+#ifdef TBC_LONG_RUN
+    .termination_time = 10000,
+#else
+	.termination_time = 1000,
+#endif
     .gvt_period = 1000000,
     .log_level = LOG_SILENT,
     .stats_file = "root_sir_stats",
@@ -72,7 +77,7 @@ void ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, union event_t 
 			memset(region, 0, sizeof(*region));
 			SetState(region);
 
-#if MANUAL_MODE > 0
+#ifdef MANUAL_MODE
 			state = region;
 #else
 			ApproximatedModeSwitch(EXEC_MODE);
@@ -142,19 +147,19 @@ void ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, union event_t 
 			printf("%s:%d: Unsupported event: %d\n", __FILE__, __LINE__, event_type);
 			exit(EXIT_FAILURE);
 	}
-#if MANUAL_MODE > 0
+#ifdef MANUAL_MODE
 	int j = END_STATES;
 	unsigned t = 0;
 	while (j--) {
 		t += state->agents_count[j];
 	}
-#endif
 #if MANUAL_MODE == 1
 	ApproximatedModeSwitch(
 			2 * state->agents_count[PRECISE_STATE] > t ? APPROXIMATED_MODE_PRECISE : APPROXIMATED_MODE_APPROXIMATED);
 #elif MANUAL_MODE == 2
 	ApproximatedModeSwitch(
 			2 * state->agents_count[PRECISE_STATE] < t ? APPROXIMATED_MODE_PRECISE : APPROXIMATED_MODE_APPROXIMATED);
+#endif
 #endif
 }
 

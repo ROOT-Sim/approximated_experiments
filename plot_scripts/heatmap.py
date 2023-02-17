@@ -1,5 +1,4 @@
 import os
-import sys
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -15,9 +14,8 @@ def load_rs_stats_file(file_name, get_gvts=False):
     rs_stats = RSStats(file_name)
     if get_gvts:
         return len(rs_stats.gvts)
-    processed_msgs = rs_stats.thread_metric_get("rolled back messages", aggregate_gvts=True)
 
-    return processed_msgs[0]
+    return rs_stats.thread_metric_get("rolled back messages", aggregate_gvts=True)[0]
 
 
 def get_precise_thread_load(dir_name, threads):
@@ -105,8 +103,8 @@ def plot_heatmap(dir_name, threads=1, latencies=None):
     plt.rcParams["axes.unicode_minus"] = False
     fig, ax = plt.subplots()
 
-    ax.xaxis.set_ticks([0, 128])
-    ax.yaxis.set_ticks([0, 128])
+    ax.xaxis.set_ticks([0, lps_dim])
+    ax.yaxis.set_ticks([0, lps_dim])
     ax.set_xlabel("x", labelpad=-10)
     ax.set_ylabel("y", rotation=0, labelpad=-15)
 
@@ -161,16 +159,14 @@ def plot_heatmap(dir_name, threads=1, latencies=None):
     for i in range(lps_dim):
         tid = lpid_to_tid(lps_dim * lps_dim, i * lps_dim + lps_dim - 1, threads)
         if last_tid != tid:
-            ax.add_patch(mpl.patches.Rectangle((lps_dim, first_i), square_width, i - first_i, color=load_colors[last_tid], linewidth=0, rasterized=True))
+            ax.add_patch(mpl.patches.Rectangle((lps_dim, first_i), square_width, i - first_i,
+                                               color=load_colors[last_tid], linewidth=0, rasterized=True))
             last_tid = tid
             first_i = i
 
-    ax.add_patch(mpl.patches.Rectangle((lps_dim, first_i), square_width, lps_dim - first_i, color=load_colors[last_tid], linewidth=0, rasterized=True))
+    ax.add_patch(mpl.patches.Rectangle((lps_dim, first_i), square_width, lps_dim - first_i,
+                                       color=load_colors[last_tid], linewidth=0, rasterized=True))
 
     ax.set_xlim([0, lps_dim + square_width])
 
     plt.savefig(f"autonomic_heatmap_{threads}.eps", dpi=300, bbox_inches='tight')
-
-
-if __name__ == "__main__":
-    plot_heatmap(sys.argv[1], int(sys.argv[2]), sys.argv[3])

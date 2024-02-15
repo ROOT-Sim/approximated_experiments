@@ -39,9 +39,13 @@ enum agent_state {
 // TODO the guy struct can be even more space efficient with some tricks: implement them
 struct guy_t {
 	rootsim_bitmap flags[bitmap_required_size(flags_count)];
+    // MIN: 1 - 365 * 90, MAX: CURRENT TIME
 	int birth_day; /// this is an int since a guy could be born in the past (before the simulation start)
+	// MIN: 1 - 7 * 365 * 365, MAX: CURRENT TIME
 	int infection_day;
+    // MIN: -180, MAX: --> Normal() * 4 + bitmap_check(guy->flags, f_foreigner)] ? 33 : 42;
 	int treatment_day;
+    // MIN: 0.01, MAX ???? PROFIT
 	double p_relapse;
 	enum agent_state state;
 	struct guy_t *next;

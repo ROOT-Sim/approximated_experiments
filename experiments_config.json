@@ -1,18 +1,6 @@
 {
-  "phold": {
-    "threads": [4, 5],
-    "repetitions": 1
-  },
-  "tbc": {
-    "threads": [4, 5],
-    "repetitions": 1
-  },
-  "tbc-long": {
-    "threads": [4, 5],
-    "repetitions": 1
-  },
-  "tbc-agents-count": {
-    "threads": 5,
+  "base_v02":{
+    "threads" : [2],
     "repetitions": 1
   }
 }

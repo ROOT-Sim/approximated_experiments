@@ -10,22 +10,26 @@ tbc_lps = 16384
 tbc_modes = ["PRECISE", "AUTONOMIC", "MANUAL-A", "MANUAL-B"]
 
 experiments_config = {
-    "phold": {
+    "base": {
         "threads": [],
         "repetitions": 0
     },
-    "tbc": {
-        "threads": [],
-        "repetitions": 0
-    },
-    "tbc-long": {
-        "threads": [],
-        "repetitions": 0
-    },
-    "tbc-agents-count": {
-        "threads": 0,
-        "repetitions": 0
-    }
+   "phold": {
+       "threads": [],
+       "repetitions": 0
+   },
+   "tbc": {
+       "threads": [],
+       "repetitions": 0
+   },
+   "tbc-long": {
+       "threads": [],
+       "repetitions": 0
+   },
+   "tbc-agents-count": {
+       "threads": 0,
+       "repetitions": 0
+   }
 }
 
 
@@ -58,6 +62,14 @@ def prepare_rootsim():
     os.system("mv rootsim_core_build_tmp rootsim_core_build")
     print("ROOT-Sim successfully built")
 
+def write_config_base(num_lps, num_threads, vals, mode):
+    with open("config.h", "w") as f:
+        f.write("#pragma once\n\n")
+        f.write(f"#define NUM_THREADS {num_threads}\n")
+        f.write(f"#define EXEC_MODE APPROXIMATED_MODE_PRECISE\n")
+        f.write(f"#define NUM_LPS {num_lps}\n")
+        f.write(f"#define SMART_RESTORE {mode}\n")
+        f.write(f"#define RANGE {vals}\n")
 
 def write_config(num_lps, num_threads, mode, percentage=1.0, tbc_long=False, tbc_agents_count=False):
     with open("config.h", "w") as f:
@@ -90,7 +102,7 @@ def rootsir_run(param_str, model_folder, collect_tbc=False):
     os.system("rm -f root_sir_stats.bin")
 
     a = datetime.now()
-    os.system("./model")
+    os.system(f"./model > {model_str}_evo.txt")
     t = (datetime.now() - a).total_seconds()
     with open("data/times.txt", "a") as f:
         spaced_str = model_str.replace('_', '\t')
@@ -102,9 +114,26 @@ def rootsir_run(param_str, model_folder, collect_tbc=False):
         os.system("rm -f tbc_stats.txt")
     os.system(f"mv root_sir_stats_phases.txt data/{model_str}_phases.txt")
     os.system(f"mv root_sir_stats.bin data/{model_str}.bin")
+    os.system(f"mv *.txt data/")
 
 
 # Collect data for all configurations and model versions
+def collect_data(test):
+    lps=[10]
+    os.system("mkdir -p data")
+    for lp in lps:
+        for iteration in range(experiments_config[test]["repetitions"]):
+            for num_threads in experiments_config[test]["threads"]:
+                for m in ["BOUNDED"]:
+                    for r in ["RANGE_1_1pC", "RANGE_0_1", "RANGE_1_1pI", "RANGE_0_1pI"]:
+                        write_config_base(lp, num_threads, r, m)
+                        param_str = f"{m}_{r}_{lp}_{num_threads}_{iteration}"
+                        rootsir_run(param_str, test)
+                        model_str = f"data/{test}_{param_str}_evo.txt"
+                        os.system(f"python3 process-abs.py {model_str}")
+                        os.system(f"python3 process-rel.py {model_str}")
+    print(f"{test} experiments completed")
+
 def collect_phold_data():
     os.system("mkdir -p data")
     for iteration in range(experiments_config["phold"]["repetitions"]):
@@ -153,8 +182,10 @@ def collect_tbc_long_data():
 
 load_configuration()
 prepare_rootsim()
-collect_phold_data()
-collect_tbc_data()
-collect_tbc_agents_count_data()
-collect_tbc_long_data()
+collect_data("base_v02")
+#collect_data("incr")
+#collect_phold_data()
+#collect_tbc_data()
+#collect_tbc_agents_count_data()
+#collect_tbc_long_data()
 print("Experiments completed!")

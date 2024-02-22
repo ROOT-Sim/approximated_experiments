@@ -77,7 +77,7 @@ model_parameters args = {
 	.ta = 0.12,
 	.ta_hot = 0,
 	.ta_duration = 120,
-	.ta_change = 30,
+	.ta_change = 300,
 	.channels = 2000,
 	.variable_ta = 0,
 	.fading_recheck = 0,
@@ -452,7 +452,7 @@ void ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, const void *ev
 bool CanEnd(lp_id_t me, const void *snapshot){
 	lp_state_type *state;
 	state = (lp_state_type*)snapshot;
-	return state->complete_calls > 1000;
+	return state->complete_calls > 2000;
 }
 
 
@@ -483,7 +483,7 @@ struct simulation_configuration conf = {
     .n_threads = NUM_THREADS,
     .termination_time = 1000000000,
     .gvt_period = 1000,
-    .log_level = LOG_SILENT,
+    .log_level = LOG_INFO,
     .stats_file = "root_sir_stats",
     .ckpt_interval = 0,
     .prng_seed = 0,

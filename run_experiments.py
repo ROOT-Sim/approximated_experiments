@@ -9,7 +9,7 @@ phold_approximated_percentages = [0.25, 0.5, 0.75, 1.0]
 tbc_lps = 16384
 tbc_modes = ["PRECISE", "AUTONOMIC", "MANUAL-A", "MANUAL-B"]
 
-pcs_lps = [64, 256, 4096]
+pcs_lps = [256, 1024, 4096]
 
 experiments_config = {
     "base": {

@@ -85,6 +85,7 @@ typedef struct _event_content_type {
 
 // Taglia di 16 byte
 typedef struct _sir_data_per_cell{
+   // double pad[40];
     double fading; // Fading of the call
     double power; // Power allocated to the call
 } sir_data_per_cell;

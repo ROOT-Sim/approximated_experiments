@@ -1,6 +1,10 @@
 {
   "base_v02":{
-    "threads" : [2],
+    "threads" : [20],
+    "repetitions": 1
+  },
+  "pcs":{
+    "threads" : [20],
     "repetitions": 1
   }
 }

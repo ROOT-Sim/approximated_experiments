@@ -73,7 +73,7 @@ def write_config_base(num_lps, num_threads, vals, mode):
         f.write(f"#define SMART_RESTORE {mode}\n")
         f.write(f"#define RANGE {vals}\n")
 
-def write_config(num_lps, num_threads, mode, percentage=1.0, tbc_long=False, tbc_agents_count=False):
+def write_config(num_lps, num_threads, mode, percentage=1.0, tbc_long=False, tbc_agents_count=False, pcs_gvt=0, pcs_calls=0):
     with open("config.h", "w") as f:
         f.write("#pragma once\n\n")
         f.write(f"#define NUM_THREADS {num_threads}\n")
@@ -88,6 +88,11 @@ def write_config(num_lps, num_threads, mode, percentage=1.0, tbc_long=False, tbc
             f.write(f"#define MANUAL_MODE 1\n")
         elif mode == "MANUAL-B":
             f.write(f"#define MANUAL_MODE 2\n")
+        if pcs_gvt != 0:
+            f.write(f"#define PCS_END_GVT {pcs_gvt}\n")
+        if pcs_calls != 0:
+            f.write(f"#define PCS_ENDS_CALL {pcs_calls}\n")
+        
 
 
 def rootsir_run(param_str, model_folder, collect_tbc=False):
@@ -151,7 +156,7 @@ def collect_data_pcs():
         for iteration in range(experiments_config[test]["repetitions"]):
             for num_threads in experiments_config[test]["threads"]:
                 for m in range(2):
-                    write_config_base(lp, num_threads, r, m)
+                    write_config_base(lp, num_threads, r, m, 1500, 0)
                     param_str = f"{m}_{r}_{lp}_{num_threads}_{iteration}"
                     rootsir_run(param_str, test)
     print(f"{test} experiments completed")

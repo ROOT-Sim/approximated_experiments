@@ -20,7 +20,8 @@ typedef struct __lp_stats{
 
 __thread lp_channel_stats **final_stats;
 
-
+ __thread double precomputed_table[256];
+ __thread int precomputed_table_done = 0;
 
 typedef struct model_parameters{
 	simtime_t ta;

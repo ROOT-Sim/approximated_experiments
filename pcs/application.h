@@ -105,14 +105,28 @@ typedef struct _sir_data_per_cell{
 #define EXTRACT_FADING(sf) ( FADING_TARGET_ABS_ERROR + ((double)sf)*FADING_TARGET_ABS_ERROR*2.0)
 
 
+extern __thread double precomputed_table[256];
+extern __thread int precomputed_table_done;
+
+
 static inline unsigned char compress_power(double p){
-	unsigned char sentinel = 0;
+	if(!precomputed_table_done){
+        precomputed_table_done = 1;
+        double th_val = MAX_POWER*(1-POWER_TARGET_REL_ERROR)/(1+POWER_TARGET_REL_ERROR);
+        for(int i =0;i<255;i++){
+            precomputed_table[i] = th_val;
+            th_val *= (1-POWER_TARGET_REL_ERROR)/(1+POWER_TARGET_REL_ERROR);
+        }
+    }
+    unsigned char sentinel = 0;
 	double th_val = (1-POWER_TARGET_REL_ERROR)/(1+POWER_TARGET_REL_ERROR);
 	double pr_val = p;
-	double cur_val = MAX_POWER*th_val;
+	//double cur_val = MAX_POWER*th_val;
+    double cur_val = precomputed_table[sentinel];
 	while(cur_val > pr_val){
-		cur_val *= th_val;
+		//cur_val *= th_val;
 		sentinel++;
+        precomputed_table[sentinel];
 	}
 	return sentinel;
 }

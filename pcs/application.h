@@ -38,6 +38,7 @@ extern struct simulation_configuration conf;
 
 #define HANDOFF_SHIFT 0.000001
 
+#define PCS_STAT_FREQUENCY 0.5
 
 /* Channel states */
 #define CHAN_BUSY	1
@@ -49,6 +50,7 @@ extern struct simulation_configuration conf;
 #define HANDOFF_LEAVE	30
 #define HANDOFF_RECV	31
 #define FADING_RECHECK	40
+#define GATHER_STATS	50
 
 #define MSK 0x1
 #define SET_CHANNEL_BIT(B,K) ( B |= (MSK << K) )
@@ -151,6 +153,12 @@ typedef struct _channel{
 } channel;
 
 
+typedef struct channel_log{
+    sir_data_per_cell *sir_data;
+	unsigned char fad_sen;
+	unsigned char pow_sen;  
+} channel_log_t;
+
 typedef struct _lp_state_type{
 	int ecs_count;
 
@@ -183,11 +191,13 @@ unsigned long long start_ts;
 	bool variable_ta; // Should the call interarrival frequency change depending on the current time?
 
 	int rounds;
-
-	unsigned int *channel_state;
+    unsigned int *channel_state;
 	struct _channel *channels;
-	int dummy;
+	channel_log_t *channel_logs;
+	int channel_log_epoch;
+    int dummy;
 	bool dummy_flag;
+
 } lp_state_type;
 
 

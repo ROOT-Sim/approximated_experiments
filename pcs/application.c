@@ -146,8 +146,8 @@ error_t model_parse_opt(int key, char *arg, struct argp_state *state){
 		case 1014:
 			args.enable_moving_hot = 1;
 			break;
-    case ARGP_KEY_END:
-    	break;
+	case ARGP_KEY_END:
+		break;
 
 
 	}
@@ -284,7 +284,12 @@ void ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, const void *ev
 			state->channel_state = rs_malloc(sizeof(unsigned int) * 2 * (state->channels_per_cell / BITS + 1));
 			for (w = 0; w < state->channel_counter / (sizeof(int) * 8) + 1; w++)
 				state->channel_state[w] = 0;
-
+			
+			unsigned long long log_bytes = sizeof(channel_log_t) * ((double)PCS_END_GVT) * 1.1 * state->channels_per_cell;
+			state->channel_logs = rs_malloc(log_bytes/PCS_STAT_FREQUENCY);
+			bzero(state->channel_logs, log_bytes/PCS_STAT_FREQUENCY);
+			state->channel_log_epoch = 0;
+			
 			// Start the simulation
 			timestamp = (simtime_t) (20 * Random());
 			ScheduleNewEvent(me, timestamp, START_CALL, NULL, 0);
@@ -294,6 +299,8 @@ void ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, const void *ev
 				timestamp = (simtime_t) (state->fading_recheck_time * Random());
 				ScheduleNewEvent(me, timestamp, FADING_RECHECK, NULL, 0);
 			}
+			
+			ScheduleNewEvent(me, now + PCS_STAT_FREQUENCY, GATHER_STATS, NULL, 0);
 
 			break;
 
@@ -324,7 +331,7 @@ void ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, const void *ev
 						break;
 
 					default:
- 						new_event_content.call_term_time = now + (simtime_t) (5 * Random() );
+						new_event_content.call_term_time = now + (simtime_t) (5 * Random() );
 				}
 
 				// Determine whether the call will be handed-off or not
@@ -434,12 +441,35 @@ void ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, const void *ev
 			break;
 
 
-				case FADING_RECHECK:
-						fading_recheck(state);
-						timestamp = now + state->fading_recheck_time;
-						ScheduleNewEvent(me, timestamp, FADING_RECHECK, NULL, 0);
+		case FADING_RECHECK:
+			fading_recheck(state);
+			timestamp = now + state->fading_recheck_time;
+			ScheduleNewEvent(me, timestamp, FADING_RECHECK, NULL, 0);
 			break;
-
+		
+		case GATHER_STATS:
+			ScheduleNewEvent(me, now + PCS_STAT_FREQUENCY, GATHER_STATS, NULL, 0);
+			unsigned int offset = state->channel_log_epoch * state->channels_per_cell;
+			
+			channel	*ch = state->channels;
+			while(ch != NULL){
+				// is core
+				if(ApproximatedMemoryCheck(ch->sir_data)){
+					state->channel_logs[offset+ch->channel_id].fad_sen  = 0;
+					state->channel_logs[offset+ch->channel_id].pow_sen  = 0;
+					state->channel_logs[offset+ch->channel_id].sir_data = rs_alloc(sizeof(sir_data_per_cell));
+					state->channel_logs[offset+ch->channel_id].sir_data->fading = ch->sir_data->fading;
+					state->channel_logs[offset+ch->channel_id].sir_data->power  = ch->sir_data->power;
+				} 
+				// is not core
+				else{
+					state->channel_logs[offset+ch->channel_id].fad_sen  = ch->fad_sen;
+					state->channel_logs[offset+ch->channel_id].pow_sen  = ch->pow_sen;
+					state->channel_logs[offset+ch->channel_id].sir_data = NULL;
+				}
+				ch = ch->prev;
+			}
+			state->channel_log_epoch++;
 
 		default:
 			fprintf(stdout, "PCS: Unknown event type! (me = %d - event type = %d)\n", me, event_type);
@@ -453,7 +483,7 @@ void ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, const void *ev
 bool CanEnd(lp_id_t me, const void *snapshot){
 	lp_state_type *state;
 	state = (lp_state_type*)snapshot;
-	return state->complete_calls > 10000;
+	return state->complete_calls > PCS_ENDS_CALL || state->lvt >= PCS_END_GVT;
 }
 
 
@@ -480,20 +510,20 @@ void RestoreApproximated(lp_id_t id, void *ptr, void *tmp) {
 
 
 struct simulation_configuration conf = {
-    .lps = NUM_LPS,
-    .n_threads = NUM_THREADS,
-    .termination_time = 1000000000,
-    .gvt_period = 1000,
-    .log_level = LOG_INFO,
-    .stats_file = "root_sir_stats",
-    .ckpt_interval = 0,
-    .prng_seed = 0,
-    .core_binding = true,
-    .serial = false,
-    .dispatcher = ProcessEvent,
-    .committed = CanEnd,
-    .restore = RestoreApproximated,
-    .pre_restore = PreRestoreApproximated
+	.lps = NUM_LPS,
+	.n_threads = NUM_THREADS,
+	.termination_time = PCS_END_GVT,
+	.gvt_period = 1000,
+	.log_level = LOG_INFO,
+	.stats_file = "root_sir_stats",
+	.ckpt_interval = 0,
+	.prng_seed = 0,
+	.core_binding = true,
+	.serial = false,
+	.dispatcher = ProcessEvent,
+	.committed = CanEnd,
+	.restore = RestoreApproximated,
+	.pre_restore = PreRestoreApproximated
 };
 
 
@@ -522,40 +552,40 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
   // Figure out which option we are parsing, and decide
   // how to store it  
   switch (key)
-    {
-    case N_CORES_KEY:
-      conf.n_threads = atoi(arg);
-      conf.serial = conf.n_threads == 1;
-      break;
-    case N_PROCESSES_KEY:
-      conf.lps = atoi(arg);
-      break;
-    case WALLCLOCK_TIMEOUT_KEY:
-      args.timeout = atoi(arg);
-      break;      
+	{
+	case N_CORES_KEY:
+	  conf.n_threads = atoi(arg);
+	  conf.serial = conf.n_threads == 1;
+	  break;
+	case N_PROCESSES_KEY:
+	  conf.lps = atoi(arg);
+	  break;
+	case WALLCLOCK_TIMEOUT_KEY:
+	  args.timeout = atoi(arg);
+	  break;      
 
-    case ARGP_KEY_END:
-      if(conf.n_threads < 1)
-      {
-        printf("Please provide a valid number of cores to be used for simulation\n");
-        argp_usage (state);
-      }
-      if(conf.lps < 1)
-      {
-        printf("Please provide a valid number of logical processes to be used for simulation\n");
-        argp_usage (state);
-      }
-      if(args.timeout < 0)
-      {
-        printf("Please provide a valid number of seconds which the simulation should last\n");
-        argp_usage (state);
-      }
-      break;
-    
-    default:
-      return 0;
-    
-    }
+	case ARGP_KEY_END:
+	  if(conf.n_threads < 1)
+	  {
+		printf("Please provide a valid number of cores to be used for simulation\n");
+		argp_usage (state);
+	  }
+	  if(conf.lps < 1)
+	  {
+		printf("Please provide a valid number of logical processes to be used for simulation\n");
+		argp_usage (state);
+	  }
+	  if(args.timeout < 0)
+	  {
+		printf("Please provide a valid number of seconds which the simulation should last\n");
+		argp_usage (state);
+	  }
+	  break;
+	
+	default:
+	  return 0;
+	
+	}
   return 0;
 }
 

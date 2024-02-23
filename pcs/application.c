@@ -453,7 +453,7 @@ void ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, const void *ev
 bool CanEnd(lp_id_t me, const void *snapshot){
 	lp_state_type *state;
 	state = (lp_state_type*)snapshot;
-	return state->complete_calls > 2000;
+	return state->complete_calls > 10000;
 }
 
 

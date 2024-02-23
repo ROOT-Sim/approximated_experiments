@@ -113,7 +113,7 @@ static inline unsigned char compress_power(double p){
 	if(!precomputed_table_done){
         precomputed_table_done = 1;
         double th_val = MAX_POWER*(1-POWER_TARGET_REL_ERROR)/(1+POWER_TARGET_REL_ERROR);
-        for(int i =0;i<255;i++){
+        for(int i =0;i<256;i++){
             precomputed_table[i] = th_val;
             th_val *= (1-POWER_TARGET_REL_ERROR)/(1+POWER_TARGET_REL_ERROR);
         }
@@ -126,15 +126,16 @@ static inline unsigned char compress_power(double p){
 	while(cur_val > pr_val){
 		//cur_val *= th_val;
 		sentinel++;
-        precomputed_table[sentinel];
+cur_val =        precomputed_table[sentinel];
 	}
 	return sentinel;
 }
 
 static inline double extract_power(unsigned char sp){
 	double p = MAX_POWER*(1-POWER_TARGET_REL_ERROR)/(1+POWER_TARGET_REL_ERROR);
-	for(unsigned char i = 0;i<sp;i++)
-		p *= (1-POWER_TARGET_REL_ERROR)/(1+POWER_TARGET_REL_ERROR);
+	//for(unsigned char i = 0;i<sp;i++)
+	//	p *= (1-POWER_TARGET_REL_ERROR)/(1+POWER_TARGET_REL_ERROR);
+p = precomputed_table[sp];
 	p *= (1+POWER_TARGET_REL_ERROR);
 	return p;
 }

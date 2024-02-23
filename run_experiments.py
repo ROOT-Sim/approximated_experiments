@@ -9,7 +9,7 @@ phold_approximated_percentages = [0.25, 0.5, 0.75, 1.0]
 tbc_lps = 16384
 tbc_modes = ["PRECISE", "AUTONOMIC", "MANUAL-A", "MANUAL-B"]
 
-pcs_lps = [256, 1024, 4096]
+pcs_lps = [1024] #[256, 1024, 4096, 4096]
 
 experiments_config = {
     "base": {
@@ -80,6 +80,8 @@ def write_config(num_lps, num_threads, mode, percentage=1.0, tbc_long=False, tbc
         f.write(f"#define EXEC_MODE APPROXIMATED_MODE_{mode}\n")
         f.write(f"#define NUM_LPS {num_lps}\n")
         f.write(f"#define APPROXIMATED_PERCENTAGE {percentage}\n")
+        if mode == "APPROXIMATED": f.write(f"#define SMART_RESTORE 1\n")
+        else:                      f.write(f"#define SMART_RESTORE 0\n")
         if tbc_agents_count:
             f.write("#define TBC_FULL_COUNT\n")
         if tbc_long:
@@ -90,8 +92,10 @@ def write_config(num_lps, num_threads, mode, percentage=1.0, tbc_long=False, tbc
             f.write(f"#define MANUAL_MODE 2\n")
         if pcs_gvt != 0:
             f.write(f"#define PCS_END_GVT {pcs_gvt}\n")
+            f.write(f"#define PCS_STAT_FREQUENCY {percentage}\n")
         if pcs_calls != 0:
             f.write(f"#define PCS_ENDS_CALL {pcs_calls}\n")
+       
         
 
 
@@ -109,7 +113,7 @@ def rootsir_run(param_str, model_folder, collect_tbc=False):
     os.system("rm -f root_sir_stats.bin")
 
     a = datetime.now()
-    os.system(f"./model > {model_str}_evo.txt")
+    os.system(f"./model | tee {model_str}_evo.txt")
     t = (datetime.now() - a).total_seconds()
     with open("data/times.txt", "a") as f:
         spaced_str = model_str.replace('_', '\t')
@@ -155,10 +159,11 @@ def collect_data_pcs():
     for lp in lps:
         for iteration in range(experiments_config[test]["repetitions"]):
             for num_threads in experiments_config[test]["threads"]:
-                for m in range(2):
-                    write_config_base(lp, num_threads, r, m, 1500, 0)
-                    param_str = f"{m}_{r}_{lp}_{num_threads}_{iteration}"
-                    rootsir_run(param_str, test)
+                for m in ["PRECISE", "APPROXIMATED"]:
+                   for p in [10.0, 100.0, 1000.0]:
+                        write_config(lp, num_threads, m, p, pcs_gvt=500)
+                        param_str = f"{m}_{p}_{lp}_{num_threads}_{iteration}"
+                        rootsir_run(param_str, test)
     print(f"{test} experiments completed")
 
 def collect_phold_data():

@@ -38,7 +38,7 @@ extern struct simulation_configuration conf;
 
 #define HANDOFF_SHIFT 0.000001
 
-#define PCS_STAT_FREQUENCY 0.5
+//#define PCS_STAT_FREQUENCY 10.0 //0.5
 
 /* Channel states */
 #define CHAN_BUSY	1
@@ -157,6 +157,7 @@ typedef struct channel_log{
     sir_data_per_cell *sir_data;
 	unsigned char fad_sen;
 	unsigned char pow_sen;  
+unsigned short id;
 } channel_log_t;
 
 typedef struct _lp_state_type{
@@ -193,7 +194,7 @@ unsigned long long start_ts;
 	int rounds;
     unsigned int *channel_state;
 	struct _channel *channels;
-	channel_log_t *channel_logs;
+	channel_log_t **channel_logs;
 	int channel_log_epoch;
     int dummy;
 	bool dummy_flag;

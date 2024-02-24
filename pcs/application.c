@@ -37,11 +37,11 @@ typedef struct model_parameters{
 	unsigned int channels_hot; 
 	unsigned int num_hot;
 
- char *hot_spot_ids;
+	char *hot_spot_ids;
 
-  double change_hot_spot_rate;
-  double last_change_hot_spot;
-  int rounds;
+	double change_hot_spot_rate;
+	double last_change_hot_spot;
+	int rounds;
 
 	bool check_fading; 
 	bool fading_recheck;
@@ -285,7 +285,7 @@ void ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, const void *ev
 			for (w = 0; w < state->channel_counter / (sizeof(int) * 8) + 1; w++)
 				state->channel_state[w] = 0;
 			
-			unsigned long long log_bytes = sizeof(void*) * ((double)PCS_END_GVT) * 1.1;
+			unsigned long long log_bytes = sizeof(void*)*PCS_STAT_FREQUENCY; // * ((double)PCS_END_GVT) * 1.1;
 			state->channel_logs = rs_malloc(log_bytes/PCS_STAT_FREQUENCY);
 			bzero(state->channel_logs, log_bytes/PCS_STAT_FREQUENCY);
 			state->channel_log_epoch = 0;
@@ -450,29 +450,35 @@ void ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, const void *ev
 		case GATHER_STATS:
 			ScheduleNewEvent(me, now + PCS_STAT_FREQUENCY, GATHER_STATS, NULL, 0);
 			unsigned int offset = state->channel_log_epoch;
-			state->channel_logs[offset] = rs_malloc(sizeof(channel_log_t)*state->channel_counter);
-			bzero(state->channel_logs[offset], sizeof(channel_log_t)*state->channel_counter);
+			if(!state->channel_logs[offset]){
+				state->channel_logs[offset] = rs_malloc(sizeof(channel_log_t)*state->channels_per_cell);
+				bzero(state->channel_logs[offset], sizeof(channel_log_t)*state->channels_per_cell);
+			}
+			
 			channel	*ch = state->channels;
 			unsigned int cnt = 0;
 			while(ch != NULL){
+				
 				// is core
-				if(ApproximatedMemoryCheck(ch->sir_data)){
-					state->channel_logs[offset][cnt].fad_sen  = 0;
-					state->channel_logs[offset][cnt].pow_sen  = 0;
-					state->channel_logs[offset][cnt].sir_data = rs_malloc(sizeof(sir_data_per_cell));
-					state->channel_logs[offset][cnt].sir_data->fading = ch->sir_data->fading;
-					state->channel_logs[offset][cnt].sir_data->power  = ch->sir_data->power;
+				if(ApproximatedMemoryCheck(ch->sir_data) || SMART_RESTORE == 0){
+					state->channel_logs[offset][ch->channel_id].fad_sen  = 0;
+					state->channel_logs[offset][ch->channel_id].pow_sen  = 0;
+					if(!state->channel_logs[offset][ch->channel_id].sir_data)
+						state->channel_logs[offset][ch->channel_id].sir_data = rs_malloc(sizeof(sir_data_per_cell));
+					state->channel_logs[offset][ch->channel_id].sir_data->fading = ch->sir_data->fading;
+					state->channel_logs[offset][ch->channel_id].sir_data->power  = ch->sir_data->power;
 				} 
 				// is not core
 				else{
-					state->channel_logs[offset][cnt].fad_sen  = ch->fad_sen;
-					state->channel_logs[offset][cnt].pow_sen  = ch->pow_sen;
-					state->channel_logs[offset][cnt].sir_data = NULL;
+					state->channel_logs[offset][ch->channel_id].fad_sen  = ch->fad_sen;
+					state->channel_logs[offset][ch->channel_id].pow_sen  = ch->pow_sen;
+					if(state->channel_logs[offset][ch->channel_id].sir_data)rs_free(state->channel_logs[offset][ch->channel_id].sir_data);
+					state->channel_logs[offset][ch->channel_id].sir_data = NULL;
 				}
-cnt++;
+				cnt++;
 				ch = ch->prev;
 			}
-			state->channel_log_epoch++;
+			//state->channel_log_epoch++;
 			break;
 		default:
 			fprintf(stdout, "PCS: Unknown event type! (me = %d - event type = %d)\n", me, event_type);

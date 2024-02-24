@@ -193,7 +193,7 @@ void ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, const void *ev
 				state->ta = args.ta_hot;
 			else
 				state->ta = args.ta;
-			if(cold != state->ta) printf("%u: change state!\n", me);
+			if(cold != state->ta) printf("%lu: change state!\n", me);
 		}
 	}
 
@@ -263,7 +263,7 @@ void ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, const void *ev
 					printf("hotspot config:\n");
 					printf("   |- #partitions: %d\n", 		PARTITIONS);
 					printf("   |- percentage of hot cells within the simulation model: %f\n", PERC_HOT);
-					printf("   |- #cells per partition: %d\n", CELLS_PER_PARTITION);
+					printf("   |- #cells per partition: %ld\n", CELLS_PER_PARTITION);
 					printf("   |- target skew: %f\n", 		TARGET_SKEW);
 					printf("   |- slim partition:\n");
 					printf("      |- #used channels: %f\n", MIN_LOAD_PARTITION);
@@ -271,7 +271,7 @@ void ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, const void *ev
 					printf("      |- #used channels: %f\n", MAX_LOAD_PARTITION);
 					printf("      |- #hot  cells (fat partition): %d\n", args.num_hot);
 					printf("      |- #used channels from hot  cells: %f\n", LOAD_FROM_HOT_CELLS);
-					printf("      |- #cold cells (fat partition): %d\n", NUM_CLD_CELLS_IN_MAX);
+					printf("      |- #cold cells (fat partition): %ld\n", NUM_CLD_CELLS_IN_MAX);
 					printf("      |- #used channels from cold cells: %f\n", LOAD_FROM_CLD_CELLS);
 					printf("      |- #channel per hot cell :   %d\n", 	args.channels_hot);
 					printf("      |- ta_hot         : %f\n", args.ta_hot);
@@ -285,10 +285,7 @@ void ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, const void *ev
 			for (w = 0; w < state->channel_counter / (sizeof(int) * 8) + 1; w++)
 				state->channel_state[w] = 0;
 			
-			unsigned long long log_bytes = sizeof(void*)*PCS_STAT_FREQUENCY; // * ((double)PCS_END_GVT) * 1.1;
-			state->channel_logs = rs_malloc(log_bytes/PCS_STAT_FREQUENCY);
-			bzero(state->channel_logs, log_bytes/PCS_STAT_FREQUENCY);
-			state->channel_log_epoch = 0;
+			state->channel_approx_size = 0;
 			
 			// Start the simulation
 			timestamp = (simtime_t) (20 * Random());
@@ -449,16 +446,17 @@ void ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, const void *ev
 		
 		case GATHER_STATS:
 			ScheduleNewEvent(me, now + PCS_STAT_FREQUENCY, GATHER_STATS, NULL, 0);
-			unsigned int offset = state->channel_log_epoch;
-			if(!state->channel_logs[offset]){
+			
+			if(!state->channel_logs){
 #if SMART_RESTORE == 1
-				state->channel_logs[offset] = rs_malloc(sizeof(channel_log_t)*state->channels_per_cell);
-				bzero(state->channel_logs[offset], sizeof(channel_log_t)*state->channels_per_cell);
+				state->channel_logs = rs_malloc(sizeof(channel_log_t)*state->channels_per_cell);
+				bzero(state->channel_logs, sizeof(channel_log_t)*state->channels_per_cell);
 #else
-				state->channel_logs[offset] = rs_malloc(sizeof(sir_data_per_cell)*state->channels_per_cell);
-				bzero(state->channel_logs[offset], sizeof(sir_data_per_cell)*state->channels_per_cell);
+				state->channel_logs = rs_malloc(sizeof(sir_data_per_cell)*state->channels_per_cell);
+				bzero(state->channel_logs, sizeof(sir_data_per_cell)*state->channels_per_cell);
 #endif
 			}
+			
 			
 			channel	*ch = state->channels;
 			unsigned int cnt = 0;
@@ -467,23 +465,16 @@ void ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, const void *ev
 			   #if SMART_RESTORE == 1
 				// is core
 				if(ApproximatedMemoryCheck(ch->sir_data)){
-					state->channel_logs[offset][ch->channel_id].fad_sen  = 0;
-					state->channel_logs[offset][ch->channel_id].pow_sen  = 0;
-					if(!state->channel_logs[offset][ch->channel_id].sir_data)
-						state->channel_logs[offset][ch->channel_id].sir_data = rs_malloc(sizeof(sir_data_per_cell));
-					state->channel_logs[offset][ch->channel_id].sir_data->fading = ch->sir_data->fading;
-					state->channel_logs[offset][ch->channel_id].sir_data->power  = ch->sir_data->power;
+					
 				} 
 				// is not core
 				else{
-					state->channel_logs[offset][ch->channel_id].fad_sen  = ch->fad_sen;
-					state->channel_logs[offset][ch->channel_id].pow_sen  = ch->pow_sen;
-					if(state->channel_logs[offset][ch->channel_id].sir_data)rs_free(state->channel_logs[offset][ch->channel_id].sir_data);
-					state->channel_logs[offset][ch->channel_id].sir_data = NULL;
+					state->channel_logs[ch->channel_id].fad_sen  = ch->fad_sen;
+					state->channel_logs[ch->channel_id].pow_sen  = ch->pow_sen;
 				}
 			  #else
-				state->channel_logs[offset][ch->channel_id].fading = ch->sir_data->fading;
-                                state->channel_logs[offset][ch->channel_id].power  = ch->sir_data->power;
+				state->channel_logs[ch->channel_id].fading = ch->sir_data->fading;
+				state->channel_logs[ch->channel_id].power  = ch->sir_data->power;
 			  #endif
 				cnt++;
 				ch = ch->prev;
@@ -491,7 +482,7 @@ void ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, const void *ev
 			//state->channel_log_epoch++;
 			break;
 		default:
-			fprintf(stdout, "PCS: Unknown event type! (me = %d - event type = %d)\n", me, event_type);
+			fprintf(stdout, "PCS: Unknown event type! (me = %ld - event type = %d)\n", me, event_type);
 			abort();
 
 	}

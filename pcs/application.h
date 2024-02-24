@@ -87,7 +87,6 @@ typedef struct _event_content_type {
 
 // Taglia di 16 byte
 typedef struct _sir_data_per_cell{
-   // double pad[40];
     double fading; // Fading of the call
     double power; // Power allocated to the call
 } sir_data_per_cell;
@@ -156,11 +155,15 @@ typedef struct _channel{
 
 
 typedef struct channel_log{
-    sir_data_per_cell *sir_data;
 	unsigned char fad_sen;
 	unsigned char pow_sen;  
 unsigned short id;
 } channel_log_t;
+
+typedef struct channel_log_pre{
+	unsigned short id;
+	sir_data_per_cell sir_data;
+} channel_log_pre_t;
 
 typedef struct _lp_state_type{
 	int ecs_count;
@@ -197,11 +200,12 @@ unsigned long long start_ts;
     unsigned int *channel_state;
 	struct _channel *channels;
 #if SMART_RESTORE == 1
-	channel_log_t **channel_logs;
+	channel_log_t *channel_logs;
+	channel_log_pre_t *precise_channel_logs;
 #else
-	sir_data_per_cell **channel_logs;
+	sir_data_per_cell *channel_logs;
 #endif
-	int channel_log_epoch;
+	int channel_approx_size;
     int dummy;
 	bool dummy_flag;
 

@@ -75,7 +75,7 @@ struct argp_option model_options[] = {
 };
 
 model_parameters args = {
-	.ta = 0.12,
+	.ta = 0.48,
 	.ta_hot = 0,
 	.ta_duration = 120,
 	.ta_change = 300,
@@ -451,16 +451,22 @@ void ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, const void *ev
 			ScheduleNewEvent(me, now + PCS_STAT_FREQUENCY, GATHER_STATS, NULL, 0);
 			unsigned int offset = state->channel_log_epoch;
 			if(!state->channel_logs[offset]){
+#if SMART_RESTORE == 1
 				state->channel_logs[offset] = rs_malloc(sizeof(channel_log_t)*state->channels_per_cell);
 				bzero(state->channel_logs[offset], sizeof(channel_log_t)*state->channels_per_cell);
+#else
+				state->channel_logs[offset] = rs_malloc(sizeof(sir_data_per_cell)*state->channels_per_cell);
+				bzero(state->channel_logs[offset], sizeof(sir_data_per_cell)*state->channels_per_cell);
+#endif
 			}
 			
 			channel	*ch = state->channels;
 			unsigned int cnt = 0;
 			while(ch != NULL){
-				
+			
+			   #if SMART_RESTORE == 1
 				// is core
-				if(ApproximatedMemoryCheck(ch->sir_data) || SMART_RESTORE == 0){
+				if(ApproximatedMemoryCheck(ch->sir_data)){
 					state->channel_logs[offset][ch->channel_id].fad_sen  = 0;
 					state->channel_logs[offset][ch->channel_id].pow_sen  = 0;
 					if(!state->channel_logs[offset][ch->channel_id].sir_data)
@@ -475,6 +481,10 @@ void ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, const void *ev
 					if(state->channel_logs[offset][ch->channel_id].sir_data)rs_free(state->channel_logs[offset][ch->channel_id].sir_data);
 					state->channel_logs[offset][ch->channel_id].sir_data = NULL;
 				}
+			  #else
+				state->channel_logs[offset][ch->channel_id].fading = ch->sir_data->fading;
+                                state->channel_logs[offset][ch->channel_id].power  = ch->sir_data->power;
+			  #endif
 				cnt++;
 				ch = ch->prev;
 			}
@@ -505,7 +515,7 @@ void* PreRestoreApproximated(lp_id_t id, void *ptr) {
 
 void RestoreApproximated(lp_id_t id, void *ptr, void *tmp) {
 	lp_state_type *state_ptr = (lp_state_type *) ptr;
-	
+#if SMART_RESTORE == 1	
 	channel *ch = state_ptr->channels;
 	
 	while(ch != NULL){
@@ -517,6 +527,7 @@ void RestoreApproximated(lp_id_t id, void *ptr, void *tmp) {
 		}
 		ch = ch->prev;
 	}
+#endif
 }
 
 

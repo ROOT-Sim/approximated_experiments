@@ -110,7 +110,7 @@ typedef struct _sir_data_per_cell{
 extern __thread double precomputed_table[256];
 extern __thread int precomputed_table_done;
 
-
+#if SMART_RESTORE == 1
 static inline unsigned char compress_power(double p){
 	if(!precomputed_table_done){
         precomputed_table_done = 1;
@@ -141,12 +141,14 @@ p = precomputed_table[sp];
 	p *= (1+POWER_TARGET_REL_ERROR);
 	return p;
 }
-
+#endif
 // Taglia di 16 byte
 typedef struct _channel{
 	unsigned short channel_id; // Number of the channel
+#if SMART_RESTORE == 1
 	unsigned char fad_sen;
 	unsigned char pow_sen;
+#endif
 	sir_data_per_cell *sir_data; // Signal/Interference Ratio data
 	struct _channel *next;
 	struct _channel *prev;
@@ -194,7 +196,11 @@ unsigned long long start_ts;
 	int rounds;
     unsigned int *channel_state;
 	struct _channel *channels;
+#if SMART_RESTORE == 1
 	channel_log_t **channel_logs;
+#else
+	sir_data_per_cell **channel_logs;
+#endif
 	int channel_log_epoch;
     int dummy;
 	bool dummy_flag;

@@ -9,7 +9,9 @@ phold_approximated_percentages = [0.25, 0.5, 0.75, 1.0]
 tbc_lps = 16384
 tbc_modes = ["PRECISE", "AUTONOMIC", "MANUAL-A", "MANUAL-B"]
 
-pcs_lps = [1024] #[256, 1024, 4096, 4096]
+pcs_lps = [1024] #[256, 1024, 4096] #[256, 1024, 4096, 4096]
+pcs_end_gvt = 500
+pcs_ta = [0.06, 0.12, 0.24, 0.48]
 
 experiments_config = {
     "base": {
@@ -48,7 +50,7 @@ def prepare_rootsim():
         return
 
     os.system("rm -r rootsim_core_build_tmp")
-    res = os.system("cmake -S rootsim_core -B rootsim_core_build_tmp -DCMAKE_BUILD_TYPE=RELEASE -DDISABLE_MPI=YES")
+    res = os.system("cmake -S rootsim_core -B rootsim_core_build_tmp -DCMAKE_BUILD_TYPE=RELEASE -DDISABLE_MPI=TRUE")
 
     if os.waitstatus_to_exitcode(res) != 0:
         print("cmake configure failed!")
@@ -92,6 +94,7 @@ def write_config(num_lps, num_threads, mode, percentage=1.0, tbc_long=False, tbc
             f.write(f"#define MANUAL_MODE 2\n")
         if pcs_gvt != 0:
             f.write(f"#define PCS_END_GVT {pcs_gvt}\n")
+            f.write(f"#define PCS_TA {percentage}\n")
             f.write(f"#define PCS_STAT_FREQUENCY {percentage}\n")
         if pcs_calls != 0:
             f.write(f"#define PCS_ENDS_CALL {pcs_calls}\n")
@@ -160,8 +163,8 @@ def collect_data_pcs():
         for iteration in range(experiments_config[test]["repetitions"]):
             for num_threads in experiments_config[test]["threads"]:
                 for m in ["PRECISE", "APPROXIMATED"]:
-                   for p in [10.0, 100.0, 1000.0]:
-                        write_config(lp, num_threads, m, p, pcs_gvt=500)
+                   for p in pcs_ta: #, 100.0, 1000.0]:
+                        write_config(lp, num_threads, m, p, pcs_gvt=pcs_end_gvt)
                         param_str = f"{m}_{p}_{lp}_{num_threads}_{iteration}"
                         rootsir_run(param_str, test)
     print(f"{test} experiments completed")

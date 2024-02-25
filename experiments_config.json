@@ -4,7 +4,7 @@
     "repetitions": 1
   },
   "pcs":{
-    "threads" : [20],
+    "threads" : [16,22,44],
     "repetitions": 1
   }
 }

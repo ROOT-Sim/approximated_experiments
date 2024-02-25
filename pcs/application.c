@@ -75,11 +75,11 @@ struct argp_option model_options[] = {
 };
 
 model_parameters args = {
-	.ta = 0.48,
+	.ta = PCS_TA,
 	.ta_hot = 0,
 	.ta_duration = 120,
 	.ta_change = 300,
-	.channels = 2000,
+	.channels = 4000,
 	.variable_ta = 0,
 	.fading_recheck = 0,
 	.fading_recheck_time = 300,
@@ -297,7 +297,7 @@ void ProcessEvent(lp_id_t me, simtime_t now, unsigned event_type, const void *ev
 				ScheduleNewEvent(me, timestamp, FADING_RECHECK, NULL, 0);
 			}
 			
-			ScheduleNewEvent(me, now + PCS_STAT_FREQUENCY, GATHER_STATS, NULL, 0);
+			//ScheduleNewEvent(me, now + PCS_STAT_FREQUENCY, GATHER_STATS, NULL, 0);
 
 			break;
 

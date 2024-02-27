@@ -9,9 +9,9 @@ phold_approximated_percentages = [0.25, 0.5, 0.75, 1.0]
 tbc_lps = 16384
 tbc_modes = ["PRECISE", "AUTONOMIC", "MANUAL-A", "MANUAL-B"]
 
-pcs_lps = [1024] #[256, 1024, 4096] #[256, 1024, 4096, 4096]
-pcs_end_gvt = 500
-pcs_ta = [0.06, 0.12, 0.24, 0.48]
+pcs_lps = [1024] #,256,1024] #[256, 1024, 4096] #[256, 1024, 4096, 4096]
+pcs_end_gvt = 2000
+pcs_ta = [0.48] #[0.06, 0.12, 0.24, 0.48]
 
 experiments_config = {
     "base": {
@@ -169,6 +169,22 @@ def collect_data_pcs():
                         rootsir_run(param_str, test)
     print(f"{test} experiments completed")
 
+
+def collect_data_pcs_errors():
+    lps = pcs_lps
+    test="pcserrors"
+    r = "RANGE_0_1pI" 
+    os.system("mkdir -p data")
+    for lp in lps:
+        for iteration in range(experiments_config[test]["repetitions"]):
+            for num_threads in experiments_config[test]["threads"]:
+                for m in ["APPROXIMATED"]:
+                   for p in pcs_ta: #, 100.0, 1000.0]:
+                        write_config(lp, num_threads, m, p, pcs_gvt=pcs_end_gvt)
+                        param_str = f"{m}_{p}_{lp}_{num_threads}_{iteration}"
+                        rootsir_run(param_str, test)
+    print(f"{test} experiments completed")
+
 def collect_phold_data():
     os.system("mkdir -p data")
     for iteration in range(experiments_config["phold"]["repetitions"]):
@@ -218,7 +234,8 @@ def collect_tbc_long_data():
 load_configuration()
 prepare_rootsim()
 #collect_data("base_v02")
-collect_data_pcs()
+#collect_data_pcs()
+collect_data_pcs_errors()
 #collect_data("incr")
 #collect_phold_data()
 #collect_tbc_data()
